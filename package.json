@@ -1,6 +1,6 @@
 {
   "name": "@lichens-innovation/eslint-plugin-coding-guide",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "ESLint flat-config plugin enforcing Lichens Innovation TypeScript/React coding standards.",
   "author": "Lichens Innovation",
   "license": "MIT",
