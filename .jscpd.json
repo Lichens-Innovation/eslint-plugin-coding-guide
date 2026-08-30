@@ -1,0 +1,7 @@
+{
+  "path": ["src"],
+  "ignore": ["dist/**", "node_modules/**"],
+  "threshold": 1,
+  "minLines": 20,
+  "minTokens": 60
+}

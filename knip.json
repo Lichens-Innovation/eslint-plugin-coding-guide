@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "tags": ["-lintignore"],
+  "rules": {
+    "exports": "warn"
+  },
+  "entry": ["src/index.ts"],
+  "ignore": ["commitlint.config.js"],
+  "ignoreDependencies": ["@commitlint/config-conventional", "@semantic-release/github", "@semantic-release/npm"]
+}
