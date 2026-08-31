@@ -39,7 +39,7 @@ export default createRule<[Options], MessageIds>({
   },
   defaultOptions: [{}],
   create(context, [options]) {
-    const pattern = options.pattern ?? "([A-Z]+-\\d+)";
+    const pattern = options.pattern ?? "([A-Z0-9]+-\\d+)";
     const terms = options.terms ?? ["TODO"];
     const commentPattern = options.commentPattern;
     const description = options.description;

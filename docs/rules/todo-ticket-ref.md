@@ -16,9 +16,9 @@ Requires a ticket reference in `TODO` (and other configured term) comments — a
 
 ## Options
 
-| Option           | Type       | Default           | Description                                                    |
-| ---------------- | ---------- | ----------------- | -------------------------------------------------------------- |
-| `pattern`        | `string`   | `"([A-Z]+-\\d+)"` | Regex a matching term's comment must contain somewhere.        |
-| `terms`          | `string[]` | `["TODO"]`        | Comment marker terms to check (e.g. `TODO`, `FIXME`).          |
-| `commentPattern` | `string`   | —                 | If set, replaces `pattern` as the full required comment shape. |
-| `description`    | `string`   | —                 | Custom message appended instead of the pattern in the report.  |
+| Option           | Type       | Default              | Description                                                    |
+| ---------------- | ---------- | -------------------- | -------------------------------------------------------------- |
+| `pattern`        | `string`   | `"([A-Z0-9]+-\\d+)"` | Regex a matching term's comment must contain somewhere.        |
+| `terms`          | `string[]` | `["TODO"]`           | Comment marker terms to check (e.g. `TODO`, `FIXME`).          |
+| `commentPattern` | `string`   | —                    | If set, replaces `pattern` as the full required comment shape. |
+| `description`    | `string`   | —                    | Custom message appended instead of the pattern in the report.  |

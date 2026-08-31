@@ -5,6 +5,7 @@ ruleTester.run("todo-ticket-ref", rule, {
   valid: [
     { code: `// TODO: JIRA-1234 fix this` },
     { code: `// TODO: https://example.atlassian.net/browse/JIRA-1234 fix this` },
+    { code: `// TODO: see TBDT2-173` },
     { code: `// just a regular comment` },
   ],
   invalid: [
@@ -13,7 +14,7 @@ ruleTester.run("todo-ticket-ref", rule, {
       errors: [
         {
           messageId: "missingTicket",
-          data: { term: "TODO", pattern: "([A-Z]+-\\d+)" },
+          data: { term: "TODO", pattern: "([A-Z0-9]+-\\d+)" },
         },
       ],
     },
