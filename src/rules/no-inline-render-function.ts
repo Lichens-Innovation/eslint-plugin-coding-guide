@@ -7,6 +7,22 @@ const RENDER_NAME_RE = /^render[A-Z]/;
 
 type FunctionLike = TSESTree.ArrowFunctionExpression | TSESTree.FunctionExpression | TSESTree.FunctionDeclaration;
 
+interface ReportArgs {
+  node: TSESTree.Node;
+  name: string;
+  variable?: TSESLint.Scope.Variable;
+}
+
+interface ResolveDeclarationVariableArgs {
+  node: FunctionLike;
+  name: string;
+}
+
+interface CheckRenderFunctionArgs {
+  node: FunctionLike;
+  name?: string;
+}
+
 /** True for a locally-declared function/const, false for a parameter (e.g. a render-prop passed in). */
 const isLocallyDeclaredFunction = (variable?: TSESLint.Scope.Variable): boolean => {
   if (variable?.scope.type !== "function") return false;
@@ -53,7 +69,7 @@ export default createRule({
       return scope.references.find((ref) => ref.identifier === identifier)?.resolved ?? undefined;
     };
 
-    const report = (node: TSESTree.Node, name: string, variable?: TSESLint.Scope.Variable): void => {
+    const report = ({ node, name, variable }: ReportArgs): void => {
       if (variable) {
         if (reportedVariables.has(variable)) return;
         reportedVariables.add(variable);
@@ -73,7 +89,7 @@ export default createRule({
       const variable = resolveVariable(identifier);
       if (!isLocallyDeclaredFunction(variable)) return;
 
-      report(identifier, identifier.name, variable);
+      report({ node: identifier, name: identifier.name, variable });
     };
 
     const isNestedInFunctionScope = (node: FunctionLike): boolean => {
@@ -88,7 +104,10 @@ export default createRule({
       return false;
     };
 
-    const resolveDeclarationVariable = (node: FunctionLike, name: string): TSESLint.Scope.Variable | undefined => {
+    const resolveDeclarationVariable = ({
+      node,
+      name,
+    }: ResolveDeclarationVariableArgs): TSESLint.Scope.Variable | undefined => {
       if (node.type === "FunctionDeclaration") {
         return context.sourceCode.getScope(node).upper?.set.get(name);
       }
@@ -98,12 +117,12 @@ export default createRule({
       return undefined;
     };
 
-    const checkRenderFunction = (node: FunctionLike, name: string | undefined): void => {
+    const checkRenderFunction = ({ node, name }: CheckRenderFunctionArgs): void => {
       if (!name || !RENDER_NAME_RE.test(name)) return;
       if (!functionReturnsJsx(node)) return;
       if (!isNestedInFunctionScope(node)) return;
 
-      report(node, name, resolveDeclarationVariable(node, name));
+      report({ node, name, variable: resolveDeclarationVariable({ node, name }) });
     };
 
     return {
@@ -113,11 +132,11 @@ export default createRule({
           return;
         }
 
-        checkRenderFunction(node.init, node.id.name);
+        checkRenderFunction({ node: node.init, name: node.id.name });
       },
 
       FunctionDeclaration(node) {
-        checkRenderFunction(node, node.id?.name);
+        checkRenderFunction({ node, name: node.id?.name });
       },
 
       CallExpression(node) {
