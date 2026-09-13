@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v1.0.4...v1.1.0) (2026-09-13)
+
+
+### Features
+
+* **one-component-per-tsx-file:** add rule for single component per .tsx file ([#2](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/issues/2)) ([eaa2257](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/eaa225799801d02aa5c1e0b30654279cafde722c))
+
 ## [1.0.4](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v1.0.3...v1.0.4) (2026-09-13)
 
 
