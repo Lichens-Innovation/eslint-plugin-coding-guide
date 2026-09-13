@@ -56,7 +56,7 @@ All rules live under the `coding-guide/` namespace and are enabled by `configs.r
 | [`no-inline-curried-handler`](docs/rules/no-inline-curried-handler.md)                           | Disallow a curried handler factory declared as a local component variable                        |
 | [`no-inline-guard-chain-handler`](docs/rules/no-inline-guard-chain-handler.md)                   | Disallow a JSX prop arrow whose body is a long `&&` guard chain                                  |
 | [`no-inline-object-param-type`](docs/rules/no-inline-object-param-type.md)                       | Disallow inline object type literals on function parameters                                      |
-| [`no-inline-render-function`](docs/rules/no-inline-render-function.md)                           | Disallow calling a locally-declared render* helper function from within JSX                      |
+| [`no-inline-render-function`](docs/rules/no-inline-render-function.md)                           | Disallow local render* helpers that return JSX, and using them from JSX                          |
 | [`no-jsx-in-variable`](docs/rules/no-jsx-in-variable.md)                                         | Disallow storing a JSX element/fragment in a variable                                            |
 | [`no-nested-try`](docs/rules/no-nested-try.md)                                                   | Disallow nesting a try statement inside another try block or catch handler                       |
 | [`no-non-hook-use-prefix`](docs/rules/no-non-hook-use-prefix.md)                                 | Disallow a use* named function whose body calls no hook                                          |
@@ -64,7 +64,7 @@ All rules live under the `coding-guide/` namespace and are enabled by `configs.r
 | [`no-tests-in-dunder-folder`](docs/rules/no-tests-in-dunder-folder.md)                           | Disallow test files inside a `__tests__` folder                                                  |
 | [`no-trivial-usememo`](docs/rules/no-trivial-usememo.md)                                         | Disallow useMemo whose body has no function call (likely unnecessary memoization)                |
 | [`no-unguarded-json-parse`](docs/rules/no-unguarded-json-parse.md)                               | Require `JSON.parse(...)` to be wrapped in a try/catch                                           |
-| [`prefer-element-ref-type`](docs/rules/prefer-element-ref-type.md)                               | Prefer `useRef<ElementRef<"tag">>(null)` over a raw `HTMLXxxElement` type argument               |
+| [`prefer-element-ref-type`](docs/rules/prefer-element-ref-type.md)                               | Prefer `useRef<ComponentRef<"tag">>(null)` over a raw `HTMLXxxElement` type argument             |
 | [`prefer-includes-over-or-chain`](docs/rules/prefer-includes-over-or-chain.md)                   | Prefer `Array#includes` over a chain of `===` comparisons against the same value                 |
 | [`prefer-jsx-short-circuit`](docs/rules/prefer-jsx-short-circuit.md)                             | Prefer `&&` short-circuit for optional JSX, with a boolean left side                             |
 | [`prefer-nullish-helpers`](docs/rules/prefer-nullish-helpers.md)                                 | Prefer `isNullish`/`!isNullish` over a manual null-and-undefined comparison pair                 |
