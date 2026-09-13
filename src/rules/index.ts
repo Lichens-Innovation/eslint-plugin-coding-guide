@@ -16,6 +16,7 @@ import noRenderFnInUsecallback from "./no-render-fn-in-usecallback.js";
 import noTestsInDunderFolder from "./no-tests-in-dunder-folder.js";
 import noTrivialUsememo from "./no-trivial-usememo.js";
 import noUnguardedJsonParse from "./no-unguarded-json-parse.js";
+import oneComponentPerTsxFile from "./one-component-per-tsx-file.js";
 import preferElementRefType from "./prefer-element-ref-type.js";
 import preferIncludesOverOrChain from "./prefer-includes-over-or-chain.js";
 import preferJsxShortCircuit from "./prefer-jsx-short-circuit.js";
@@ -51,6 +52,7 @@ export const rules = {
   "no-tests-in-dunder-folder": noTestsInDunderFolder,
   "no-trivial-usememo": noTrivialUsememo,
   "no-unguarded-json-parse": noUnguardedJsonParse,
+  "one-component-per-tsx-file": oneComponentPerTsxFile,
   "prefer-element-ref-type": preferElementRefType,
   "prefer-includes-over-or-chain": preferIncludesOverOrChain,
   "prefer-jsx-short-circuit": preferJsxShortCircuit,
