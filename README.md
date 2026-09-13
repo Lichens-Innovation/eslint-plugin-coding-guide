@@ -64,6 +64,7 @@ All rules live under the `coding-guide/` namespace and are enabled by `configs.r
 | [`no-tests-in-dunder-folder`](docs/rules/no-tests-in-dunder-folder.md)                           | Disallow test files inside a `__tests__` folder                                                  |
 | [`no-trivial-usememo`](docs/rules/no-trivial-usememo.md)                                         | Disallow useMemo whose body has no function call (likely unnecessary memoization)                |
 | [`no-unguarded-json-parse`](docs/rules/no-unguarded-json-parse.md)                               | Require `JSON.parse(...)` to be wrapped in a try/catch                                           |
+| [`one-component-per-tsx-file`](docs/rules/one-component-per-tsx-file.md)                         | Allow at most one React component per `.tsx` file                                                |
 | [`prefer-element-ref-type`](docs/rules/prefer-element-ref-type.md)                               | Prefer `useRef<ComponentRef<"tag">>(null)` over a raw `HTMLXxxElement` type argument             |
 | [`prefer-includes-over-or-chain`](docs/rules/prefer-includes-over-or-chain.md)                   | Prefer `Array#includes` over a chain of `===` comparisons against the same value                 |
 | [`prefer-jsx-short-circuit`](docs/rules/prefer-jsx-short-circuit.md)                             | Prefer `&&` short-circuit for optional JSX, with a boolean left side                             |
