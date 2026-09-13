@@ -1,6 +1,6 @@
 # coding-guide/no-inline-render-function
 
-Disallows calling a locally-declared `render*` helper function from within the JSX it's declared next to — extract a dedicated subcomponent instead so React can key/memoize it independently.
+Disallows locally-declared `render*` helpers that return JSX, and using them from JSX (call or reference) — extract a dedicated subcomponent instead so React can key/memoize it independently.
 
 ## ❌ Incorrect
 
@@ -10,6 +10,13 @@ function Widget() {
     return <div />;
   }
   return <div>{renderHeader()}</div>;
+}
+```
+
+```tsx
+function Home() {
+  const renderToolCard = (tool: { path: string }) => <div key={tool.path} />;
+  return <div>{tools.map(renderToolCard)}</div>;
 }
 ```
 
@@ -26,6 +33,30 @@ function Widget() {
       <Header />
     </div>
   );
+}
+```
+
+```tsx
+function ToolCard({ path }: { path: string }) {
+  return <div key={path} />;
+}
+
+function Home({ tools }: { tools: { path: string }[] }) {
+  return (
+    <div>
+      {tools.map((tool) => (
+        <ToolCard key={tool.path} path={tool.path} />
+      ))}
+    </div>
+  );
+}
+```
+
+Render-prop parameters (passed in from outside) remain allowed:
+
+```tsx
+function Widget({ renderHeader }: { renderHeader: () => JSX.Element }) {
+  return <div>{renderHeader()}</div>;
 }
 ```
 
