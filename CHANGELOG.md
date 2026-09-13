@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v1.0.3...v1.0.4) (2026-09-13)
+
+
+### Bug Fixes
+
+* **inline-render:** improve the inline rendering rule ([#1](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/issues/1)) ([eb70487](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/eb70487a11204c80d92990b4e916abdddb176576))
+
 ## [1.0.3](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v1.0.2...v1.0.3) (2026-08-31)
 
 
