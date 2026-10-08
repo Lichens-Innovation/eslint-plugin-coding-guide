@@ -6,6 +6,10 @@ ruleTester.run("prefer-jsx-short-circuit", rule, {
     { code: `const el = <div>{isOpen && <Modal />}</div>;` },
     { code: `const el = <div>{!!count && <Badge count={count} />}</div>;` },
     { code: `const el = <div>{items.length > 0 && <List items={items} />}</div>;` },
+    { code: `const el = <div>{!isMobile && "Clear"}</div>;` },
+    { code: `const el = <div>{isOpen && label}</div>;` },
+    { code: `const el = <div>{isOpen && \`\${count} items\`}</div>;` },
+    { code: `const el = <div>{a > 0 && b > 0 && "text"}</div>;` },
   ],
   invalid: [
     {
@@ -16,6 +20,11 @@ ruleTester.run("prefer-jsx-short-circuit", rule, {
     {
       code: `const el = <div>{items.length && <List items={items} />}</div>;`,
       output: `const el = <div>{items.length > 0 && <List items={items} />}</div>;`,
+      errors: [{ messageId: "requireBooleanGuard" }],
+    },
+    {
+      code: `const el = <div>{items.length && "text"}</div>;`,
+      output: `const el = <div>{items.length > 0 && "text"}</div>;`,
       errors: [{ messageId: "requireBooleanGuard" }],
     },
   ],

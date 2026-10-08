@@ -79,13 +79,19 @@ const isBooleanishType = (type?: Type): boolean => {
   return false;
 };
 
-const collectNonJsxAndLeaves = (node: TSESTree.Expression): TSESTree.Expression[] => {
-  if (isJsxNode(node)) return [];
+const collectAndLeaves = (node: TSESTree.Expression): TSESTree.Expression[] => {
   if (node.type === "LogicalExpression" && node.operator === "&&") {
-    return [...collectNonJsxAndLeaves(node.left), ...collectNonJsxAndLeaves(node.right)];
+    return [...collectAndLeaves(node.left), ...collectAndLeaves(node.right)];
   }
   return [node];
 };
+
+// The last `&&` operand is the rendered content (JSX, string, node...), not a guard —
+// only the preceding operands can leak a falsy non-boolean value into the output.
+const collectGuardLeaves = (node: TSESTree.Expression): TSESTree.Expression[] =>
+  collectAndLeaves(node)
+    .slice(0, -1)
+    .filter((leaf) => !isJsxNode(leaf));
 
 export default createRule({
   name: "prefer-jsx-short-circuit",
@@ -179,7 +185,7 @@ export default createRule({
         if (node.type !== "LogicalExpression") return;
         if (!isJsxChildExpression(node)) return;
 
-        for (const leaf of collectNonJsxAndLeaves(node)) {
+        for (const leaf of collectGuardLeaves(node)) {
           if (!needsBooleanCoerce(leaf)) continue;
 
           context.report({
