@@ -47,7 +47,7 @@ export default tseslint.config(
       "@typescript-eslint/no-non-null-assertion": "error",
       "@typescript-eslint/no-inferrable-types": "error",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
-      "@typescript-eslint/prefer-nullish-coalescing": ["error", { ignorePrimitives: { string: true } }],
+      "@typescript-eslint/prefer-nullish-coalescing": "error",
       "@typescript-eslint/consistent-indexed-object-style": ["error", "record"],
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/no-misused-promises": "error",
