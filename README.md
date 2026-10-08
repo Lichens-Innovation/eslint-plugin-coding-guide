@@ -49,6 +49,7 @@ All rules live under the `coding-guide/` namespace and are enabled by `configs.r
 | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | [`filename-convention-by-export-shape`](docs/rules/filename-convention-by-export-shape.md)       | Enforce filename conventions against a file's exported shape                                       |
 | [`hoist-static-component-constants`](docs/rules/hoist-static-component-constants.md)             | Disallow a static array/object literal declared inside a component body                            |
+| [`max-files-per-folder`](docs/rules/max-files-per-folder.md)                                     | Enforce a maximum number of source files per folder                                                |
 | [`max-params-project`](docs/rules/max-params-project.md)                                         | Enforce a maximum number of parameters on project-owned functions                                  |
 | [`no-bind-this`](docs/rules/no-bind-this.md)                                                     | Disallow `.bind(this)` — use an arrow function instead                                             |
 | [`no-double-negation`](docs/rules/no-double-negation.md)                                         | Disallow double negations such as `!isNotBlank(x)`, `!(a !== b)` or an `isNotDisabled` name        |

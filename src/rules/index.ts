@@ -1,5 +1,6 @@
 import filenameConventionByExportShape from "./filename-convention-by-export-shape.js";
 import hoistStaticComponentConstants from "./hoist-static-component-constants.js";
+import maxFilesPerFolder from "./max-files-per-folder.js";
 import maxParamsProject from "./max-params-project.js";
 import noBindThis from "./no-bind-this.js";
 import noDoubleNegation from "./no-double-negation.js";
@@ -45,6 +46,7 @@ import todoTicketRef from "./todo-ticket-ref.js";
 export const rules = {
   "filename-convention-by-export-shape": filenameConventionByExportShape,
   "hoist-static-component-constants": hoistStaticComponentConstants,
+  "max-files-per-folder": maxFilesPerFolder,
   "max-params-project": maxParamsProject,
   "no-bind-this": noBindThis,
   "no-double-negation": noDoubleNegation,
