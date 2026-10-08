@@ -1,48 +1,44 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
+import {
+  getChildNodes,
+  isFunctionNode,
+  isIdentifierCall,
+  isInlineFunction,
+  type InlineFunction,
+} from "../utils/ast.utils.js";
 
 const RISKY_CALL_NAMES = new Set(["setInterval", "setTimeout", "addEventListener", "subscribe"]);
 
-const isAstNode = (value: unknown): value is TSESTree.Node =>
-  !!value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string";
+type BlockBodyCallback = InlineFunction & { body: TSESTree.BlockStatement };
 
-const isRiskyRegistration = (node: TSESTree.Node): boolean => {
-  if (node.type !== "CallExpression") return false;
-  if (node.callee.type === "Identifier") return RISKY_CALL_NAMES.has(node.callee.name);
-  if (node.callee.type === "MemberExpression" && node.callee.property.type === "Identifier") {
-    return RISKY_CALL_NAMES.has(node.callee.property.name);
-  }
-  return false;
+const getCalleeName = (callee: TSESTree.Expression): string | null => {
+  if (callee.type === "Identifier") return callee.name;
+  if (callee.type === "MemberExpression" && callee.property.type === "Identifier") return callee.property.name;
+  return null;
 };
 
-/** Don't descend into nested (already independently-scoped) functions. */
-const containsRiskyRegistration = (node: unknown): boolean => {
-  if (!isAstNode(node)) return false;
+const isRiskyRegistration = (node: TSESTree.Node): boolean =>
+  node.type === "CallExpression" && RISKY_CALL_NAMES.has(getCalleeName(node.callee) ?? "");
+
+const containsRiskyRegistration = (node: TSESTree.Node): boolean => {
   if (isRiskyRegistration(node)) return true;
-  if (["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"].includes(node.type)) {
-    return false;
-  }
+  // Nested functions are independently scoped — their registrations are not the effect's.
+  if (isFunctionNode(node)) return false;
 
-  for (const key of Object.keys(node)) {
-    if (key === "parent") continue;
-    const value = (node as unknown as Record<string, unknown>)[key];
-    const matches = Array.isArray(value)
-      ? value.some((child) => containsRiskyRegistration(child))
-      : containsRiskyRegistration(value);
-    if (matches) return true;
-  }
-
-  return false;
+  return getChildNodes(node).some(containsRiskyRegistration);
 };
 
 const hasCleanupReturn = (blockStatement: TSESTree.BlockStatement): boolean =>
-  blockStatement.body.some(
-    (statement) =>
-      statement.type === "ReturnStatement" &&
-      statement.argument !== null &&
-      ["ArrowFunctionExpression", "FunctionExpression"].includes(statement.argument.type)
-  );
+  blockStatement.body.some((statement) => statement.type === "ReturnStatement" && isInlineFunction(statement.argument));
+
+const getBlockBodyCallback = (node: TSESTree.CallExpression): BlockBodyCallback | null => {
+  const [callback] = node.arguments;
+  if (!isInlineFunction(callback) || callback.body.type !== "BlockStatement") return null;
+
+  return callback as BlockBodyCallback;
+};
 
 export default createRule({
   name: "require-effect-cleanup",
@@ -60,16 +56,10 @@ export default createRule({
   create(context) {
     return {
       CallExpression(node) {
-        if (node.callee.type !== "Identifier" || node.callee.name !== "useEffect") return;
+        if (!isIdentifierCall({ node, name: "useEffect" })) return;
 
-        const [callback] = node.arguments;
-        if (
-          !callback ||
-          (callback.type !== "ArrowFunctionExpression" && callback.type !== "FunctionExpression") ||
-          callback.body.type !== "BlockStatement"
-        ) {
-          return;
-        }
+        const callback = getBlockBodyCallback(node);
+        if (!callback) return;
         if (!containsRiskyRegistration(callback.body)) return;
         if (hasCleanupReturn(callback.body)) return;
 

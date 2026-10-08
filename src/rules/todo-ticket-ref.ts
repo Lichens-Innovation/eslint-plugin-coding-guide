@@ -1,3 +1,6 @@
+import { isBlank } from "@lichens-innovation/ts-common";
+import type { TSESTree } from "@typescript-eslint/utils";
+
 import { createRule } from "../create-rule.js";
 
 export interface Options {
@@ -9,6 +12,12 @@ export interface Options {
 }
 
 type MessageIds = "missingTicket" | "missingTicketWithCommentPattern" | "missingTicketWithDescription";
+
+const getMessageId = ({ description, commentPattern }: Options): MessageIds => {
+  if (description) return "missingTicketWithDescription";
+  if (!isBlank(commentPattern)) return "missingTicketWithCommentPattern";
+  return "missingTicket";
+};
 
 export default createRule<[Options], MessageIds>({
   name: "todo-ticket-ref",
@@ -41,40 +50,26 @@ export default createRule<[Options], MessageIds>({
   create(context, [options]) {
     const pattern = options.pattern ?? "([A-Z0-9]+-\\d+)";
     const terms = options.terms ?? ["TODO"];
-    const commentPattern = options.commentPattern;
-    const description = options.description;
+    const { commentPattern, description } = options;
 
-    const sourceCode = context.sourceCode;
-    const comments = sourceCode.getAllComments();
+    // Unanchored on purpose: the reference may appear anywhere, e.g. "TODO: https://.../browse/TBDT2-173".
+    const referenceRegex = new RegExp(isBlank(commentPattern) ? pattern : commentPattern, "i");
+    const messageId = getMessageId(options);
 
-    // Ticket pattern: valid if it appears anywhere in the comment (e.g. "TODO: TBDT2-173", "TODO: https://.../browse/TBDT2-173")
-    const ticketRegex = new RegExp(pattern, "i");
-    const termSearchPatterns: Record<string, RegExp> = {};
-    for (const term of terms) {
-      termSearchPatterns[term] = commentPattern ? new RegExp(commentPattern, "i") : ticketRegex;
-    }
+    const findTermsMissingReference = (value: string): string[] =>
+      referenceRegex.test(value) ? [] : terms.filter((term) => value.includes(term));
 
-    const getMessageId = (): MessageIds => {
-      if (description) return "missingTicketWithDescription";
-      if (commentPattern) return "missingTicketWithCommentPattern";
-      return "missingTicket";
-    };
-
-    const checkComment = (comment: (typeof comments)[number]): void => {
-      const value = comment.value;
-      for (const term of terms) {
-        if (!value.includes(term)) continue;
-        const re = termSearchPatterns[term];
-        if (re.test(value)) continue;
+    const checkComment = (comment: TSESTree.Comment): void => {
+      for (const term of findTermsMissingReference(comment.value)) {
         context.report({
           loc: comment.loc,
-          messageId: getMessageId(),
+          messageId,
           data: { term, pattern, commentPattern: commentPattern ?? "", description: description ?? "" },
         });
       }
     };
 
-    comments.forEach(checkComment);
+    context.sourceCode.getAllComments().forEach(checkComment);
 
     return {};
   },

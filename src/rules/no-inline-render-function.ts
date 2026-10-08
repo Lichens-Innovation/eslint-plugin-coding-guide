@@ -1,11 +1,11 @@
+import { isBlank } from "@lichens-innovation/ts-common";
 import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 
-import { functionReturnsJsx } from "../ast-utils.js";
 import { createRule } from "../create-rule.js";
+import { isInlineFunction, type FunctionLike } from "../utils/ast.utils.js";
+import { functionReturnsJsx } from "../utils/react.utils.js";
 
 const RENDER_NAME_RE = /^render[A-Z]/;
-
-type FunctionLike = TSESTree.ArrowFunctionExpression | TSESTree.FunctionExpression | TSESTree.FunctionDeclaration;
 
 interface ReportArgs {
   node: TSESTree.Node;
@@ -23,7 +23,7 @@ interface CheckRenderFunctionArgs {
   name?: string;
 }
 
-/** True for a locally-declared function/const, false for a parameter (e.g. a render-prop passed in). */
+// Parameters are excluded: a render-prop passed in is not a local helper to extract.
 const isLocallyDeclaredFunction = (variable?: TSESLint.Scope.Variable): boolean => {
   if (variable?.scope.type !== "function") return false;
   const def = variable.defs[0] as { type?: string } | undefined;
@@ -39,11 +39,16 @@ const isInsideJsx = (node: TSESTree.Node): boolean => {
   return false;
 };
 
-/** True when this Identifier is the callee of a CallExpression (handled separately). */
 const isCallCallee = (node: TSESTree.Identifier): boolean =>
   node.parent.type === "CallExpression" && node.parent.callee === node;
 
-const suggestedName = (name: string): string => name.slice("render".length) || "Section";
+const isBindingIdentifier = (node: TSESTree.Identifier): boolean =>
+  (node.parent.type === "VariableDeclarator" || node.parent.type === "FunctionDeclaration") && node.parent.id === node;
+
+const suggestedName = (name: string): string => {
+  const suffix = name.slice("render".length);
+  return isBlank(suffix) ? "Section" : suffix;
+};
 
 export default createRule({
   name: "no-inline-render-function",
@@ -61,7 +66,7 @@ export default createRule({
   },
   defaultOptions: [],
   create(context) {
-    /** Variables already reported at their declaration site — avoid duplicate use-site reports. */
+    // Variables already reported at their declaration site — avoid duplicate use-site reports.
     const reportedVariables = new WeakSet<object>();
 
     const resolveVariable = (identifier: TSESTree.Identifier): TSESLint.Scope.Variable | undefined => {
@@ -118,7 +123,7 @@ export default createRule({
     };
 
     const checkRenderFunction = ({ node, name }: CheckRenderFunctionArgs): void => {
-      if (!name || !RENDER_NAME_RE.test(name)) return;
+      if (isBlank(name) || !RENDER_NAME_RE.test(name)) return;
       if (!functionReturnsJsx(node)) return;
       if (!isNestedInFunctionScope(node)) return;
 
@@ -127,10 +132,7 @@ export default createRule({
 
     return {
       VariableDeclarator(node) {
-        if (node.id.type !== "Identifier") return;
-        if (!node.init || (node.init.type !== "ArrowFunctionExpression" && node.init.type !== "FunctionExpression")) {
-          return;
-        }
+        if (node.id.type !== "Identifier" || !isInlineFunction(node.init)) return;
 
         checkRenderFunction({ node: node.init, name: node.id.name });
       },
@@ -145,10 +147,8 @@ export default createRule({
       },
 
       Identifier(node) {
-        if (isCallCallee(node)) return;
-        // Skip the binding identifier itself (declaration sites handled above).
-        if (node.parent.type === "VariableDeclarator" && node.parent.id === node) return;
-        if (node.parent.type === "FunctionDeclaration" && node.parent.id === node) return;
+        // Calls and declaration sites are handled by their own visitors.
+        if (isCallCallee(node) || isBindingIdentifier(node)) return;
 
         reportLocalRenderInJsx(node);
       },

@@ -15,19 +15,23 @@ function Widget() {
 
 ```tsx
 function Home() {
-  const renderToolCard = (tool: { path: string }) => <div key={tool.path} />;
+  const renderToolCard = (tool: Tool) => <div key={tool.path} />;
   return <div>{tools.map(renderToolCard)}</div>;
 }
 ```
 
 ## ✅ Correct
 
+Each extracted component lives in its own `.tsx` file (see `one-component-per-tsx-file`):
+
 ```tsx
-function Header() {
+// header.tsx
+export function Header() {
   return <div />;
 }
 
-function Widget() {
+// widget.tsx
+export function Widget() {
   return (
     <div>
       <Header />
@@ -37,11 +41,21 @@ function Widget() {
 ```
 
 ```tsx
-function ToolCard({ path }: { path: string }) {
+// tool-card.tsx
+interface ToolCardProps {
+  path: string;
+}
+
+export function ToolCard({ path }: ToolCardProps) {
   return <div key={path} />;
 }
 
-function Home({ tools }: { tools: { path: string }[] }) {
+// home.tsx
+interface HomeProps {
+  tools: Tool[];
+}
+
+export function Home({ tools }: HomeProps) {
   return (
     <div>
       {tools.map((tool) => (
@@ -55,10 +69,16 @@ function Home({ tools }: { tools: { path: string }[] }) {
 Render-prop parameters (passed in from outside) remain allowed:
 
 ```tsx
-function Widget({ renderHeader }: { renderHeader: () => JSX.Element }) {
+interface WidgetProps {
+  renderHeader: () => ReactNode;
+}
+
+function Widget({ renderHeader }: WidgetProps) {
   return <div>{renderHeader()}</div>;
 }
 ```
+
+Module-level `render*` helpers are not flagged either.
 
 ## Options
 

@@ -1,53 +1,37 @@
 import type { TSESTree } from "@typescript-eslint/utils";
-import type { Type } from "typescript";
 
 import { createRule } from "../create-rule.js";
+import {
+  flattenLogicalChain,
+  hasNamedImport,
+  isJsxNode,
+  isNegation,
+  isNullLiteral,
+  isTypeWrapper,
+  isUndefinedIdentifier,
+} from "../utils/ast.utils.js";
+import { createTypeResolver, isBooleanishType, isNullableStringType } from "../utils/type.utils.js";
 
-// Mirrors the ts.TypeFlags bit values we need — avoids a runtime dependency on
-// the "typescript" package just for these constants (the `Type` values themselves
-// come from the consumer's own type-aware parser services at lint time).
-const TYPE_FLAG_UNDEFINED = 4;
-const TYPE_FLAG_NULL = 8;
-const TYPE_FLAG_VOID = 16;
-const TYPE_FLAG_BOOLEAN = 256;
-const TYPE_FLAG_BOOLEAN_LITERAL = 8192;
-const TYPE_FLAG_NEVER = 262144;
-const BOOLEANISH_FLAGS =
-  TYPE_FLAG_BOOLEAN |
-  TYPE_FLAG_BOOLEAN_LITERAL |
-  TYPE_FLAG_NULL |
-  TYPE_FLAG_UNDEFINED |
-  TYPE_FLAG_VOID |
-  TYPE_FLAG_NEVER;
+const TS_COMMON_SOURCE = "@lichens-innovation/ts-common";
 
 const unwrap = (node: TSESTree.Expression): TSESTree.Expression => {
-  let current: TSESTree.Expression = node;
-  while (
-    current.type === "TSAsExpression" ||
-    current.type === "TSSatisfiesExpression" ||
-    current.type === "TSTypeAssertion" ||
-    current.type === "TSNonNullExpression" ||
-    current.type === "ChainExpression"
-  ) {
+  let current = node;
+  while (isTypeWrapper(current) || current.type === "ChainExpression") {
     current = current.expression;
   }
   return current;
 };
 
-const isJsxNode = (node?: TSESTree.Node): node is TSESTree.JSXElement | TSESTree.JSXFragment =>
-  !!node && ["JSXElement", "JSXFragment"].includes(node.type);
-
 const isJsxChildExpression = (node: TSESTree.Node): boolean => {
   const container = node.parent;
   if (!container || container.type !== "JSXExpressionContainer") return false;
-  const grandparent = container.parent;
-  return !!grandparent && ["JSXElement", "JSXFragment"].includes(grandparent.type);
+  return isJsxNode(container.parent);
 };
 
 const isDiscardedNode = (node: TSESTree.Expression): boolean => {
   const inner = unwrap(node);
-  if (inner.type === "Literal" && (inner.value === null || inner.value === false)) return true;
-  return inner.type === "Identifier" && inner.name === "undefined";
+  if (inner.type === "Literal" && inner.value === false) return true;
+  return isNullLiteral(inner) || isUndefinedIdentifier(inner);
 };
 
 const isLengthAccess = (node: TSESTree.Expression): boolean => {
@@ -62,7 +46,7 @@ const isLengthAccess = (node: TSESTree.Expression): boolean => {
 
 const isSyntacticallyBoolean = (node: TSESTree.Expression): boolean => {
   const inner = unwrap(node);
-  if (inner.type === "UnaryExpression" && inner.operator === "!") return true;
+  if (isNegation(inner)) return true;
   if (inner.type === "BinaryExpression") return true;
   if (inner.type === "CallExpression") return true;
   if (inner.type === "Literal" && typeof inner.value === "boolean") return true;
@@ -72,20 +56,22 @@ const isSyntacticallyBoolean = (node: TSESTree.Expression): boolean => {
   return false;
 };
 
-const isBooleanishType = (type?: Type): boolean => {
-  if (!type) return false;
-  if (type.flags & BOOLEANISH_FLAGS) return true;
-  if (type.isUnion()) return type.types.every(isBooleanishType);
-  return false;
+const needsCoerceWithoutType = (node: TSESTree.Expression): boolean => {
+  const inner = unwrap(node);
+  if (inner.type === "Identifier") return false;
+  if (inner.type === "Literal" && typeof inner.value === "boolean") return false;
+  return !isJsxNode(inner);
 };
 
-const collectNonJsxAndLeaves = (node: TSESTree.Expression): TSESTree.Expression[] => {
-  if (isJsxNode(node)) return [];
-  if (node.type === "LogicalExpression" && node.operator === "&&") {
-    return [...collectNonJsxAndLeaves(node.left), ...collectNonJsxAndLeaves(node.right)];
-  }
-  return [node];
-};
+const isOptionalJsxTernary = (node: TSESTree.ConditionalExpression): boolean =>
+  isJsxNode(node.consequent) && isDiscardedNode(node.alternate);
+
+// The last `&&` operand is the rendered content (JSX, string, node...), not a guard —
+// only the preceding operands can leak a falsy non-boolean value into the output.
+const collectGuardLeaves = (node: TSESTree.Expression): TSESTree.Expression[] =>
+  flattenLogicalChain({ node, operator: "&&" })
+    .slice(0, -1)
+    .filter((leaf) => !isJsxNode(leaf));
 
 export default createRule({
   name: "prefer-jsx-short-circuit",
@@ -99,7 +85,9 @@ export default createRule({
     messages: {
       preferShortCircuit: "Use `&&` short-circuit instead of `cond ? jsx : null` for optional rendering.",
       requireBooleanGuard:
-        "Left side of `&&` in JSX may leak a non-boolean value — use `!!value` or a boolean comparison.",
+        "Left side of `&&` in JSX may leak a non-boolean value — use a boolean comparison (`.length > 0`, `!isNullish(x)`) or `!!value`.",
+      requireBlankGuard:
+        'String on the left side of `&&` in JSX can render `""` — use `isNotBlank({{expr}})` from @lichens-innovation/ts-common.',
     },
   },
   defaultOptions: [],
@@ -115,17 +103,17 @@ export default createRule({
       return sourceCode.getText(node);
     };
 
-    const getTypeAtNode = (node: TSESTree.Node): Type | undefined => {
-      try {
-        const services = sourceCode.parserServices;
-        if (!services?.program || !services.esTreeNodeToTSNodeMap) return undefined;
-        const tsNode = services.esTreeNodeToTSNodeMap.get(node);
-        if (!tsNode) return undefined;
-        return services.program.getTypeChecker().getTypeAtLocation(tsNode);
-      } catch {
-        return undefined;
-      }
-    };
+    const getTypeAtNode = createTypeResolver(sourceCode);
+    const hasIsNotBlankImport = hasNamedImport({
+      program: sourceCode.ast,
+      source: TS_COMMON_SOURCE,
+      name: "isNotBlank",
+    });
+
+    // A string guard must become `isNotBlank(x)`, not `!!x` (which `prefer-blank-helpers` rejects);
+    // without the import in scope there is no safe text to emit, so the report carries no fix.
+    const isStringGuard = (node: TSESTree.Expression): boolean =>
+      !isLengthAccess(node) && isNullableStringType(getTypeAtNode(node));
 
     const needsBooleanCoerce = (node: TSESTree.Expression): boolean => {
       if (isSyntacticallyBoolean(node)) return false;
@@ -134,15 +122,13 @@ export default createRule({
       const type = getTypeAtNode(node);
       if (type) return !isBooleanishType(type);
 
-      const inner = unwrap(node);
-      if (inner.type === "Identifier") return false;
-      if (inner.type === "Literal" && typeof inner.value === "boolean") return false;
-      return inner.type !== "JSXElement" && inner.type !== "JSXFragment";
+      return needsCoerceWithoutType(node);
     };
 
-    const coerceText = (node: TSESTree.Expression): string => {
+    const coerceText = (node: TSESTree.Expression): string | null => {
       const text = sourceCode.getText(node);
       if (isLengthAccess(node)) return `${text} > 0`;
+      if (isStringGuard(node)) return hasIsNotBlankImport ? `isNotBlank(${text})` : null;
       const inner = unwrap(node);
       if (["Identifier", "MemberExpression", "ChainExpression"].includes(inner.type)) {
         return `!!${text}`;
@@ -150,9 +136,11 @@ export default createRule({
       return `!!(${text})`;
     };
 
-    const formatBooleanTest = (node: TSESTree.Expression): string => {
+    const formatBooleanTest = (node: TSESTree.Expression): string | null => {
       if (node.type === "LogicalExpression" && node.operator === "&&") {
-        return `${formatBooleanTest(node.left)} && ${formatBooleanTest(node.right)}`;
+        const left = formatBooleanTest(node.left);
+        const right = formatBooleanTest(node.right);
+        return left === null || right === null ? null : `${left} && ${right}`;
       }
       if (needsBooleanCoerce(node)) return coerceText(node);
       return sourceCode.getText(node);
@@ -162,13 +150,14 @@ export default createRule({
       "JSXExpressionContainer > ConditionalExpression"(node: TSESTree.Node) {
         if (node.type !== "ConditionalExpression") return;
         if (!isJsxChildExpression(node)) return;
-        if (!isJsxNode(node.consequent) || !isDiscardedNode(node.alternate)) return;
+        if (!isOptionalJsxTernary(node)) return;
 
         context.report({
           node,
           messageId: "preferShortCircuit",
           fix: (fixer) => {
             const testText = formatBooleanTest(node.test);
+            if (testText === null) return null;
             const consequentText = getTextPreservingParens(node.consequent);
             return fixer.replaceText(node, `${testText} && ${consequentText}`);
           },
@@ -179,13 +168,15 @@ export default createRule({
         if (node.type !== "LogicalExpression") return;
         if (!isJsxChildExpression(node)) return;
 
-        for (const leaf of collectNonJsxAndLeaves(node)) {
+        for (const leaf of collectGuardLeaves(node)) {
           if (!needsBooleanCoerce(leaf)) continue;
 
+          const replacement = coerceText(leaf);
           context.report({
             node: leaf,
-            messageId: "requireBooleanGuard",
-            fix: (fixer) => fixer.replaceText(leaf, coerceText(leaf)),
+            messageId: isStringGuard(leaf) ? "requireBlankGuard" : "requireBooleanGuard",
+            data: { expr: sourceCode.getText(leaf) },
+            fix: replacement === null ? null : (fixer) => fixer.replaceText(leaf, replacement),
           });
         }
       },

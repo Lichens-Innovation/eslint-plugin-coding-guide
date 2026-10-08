@@ -1,7 +1,9 @@
+import { isNotBlank } from "@lichens-innovation/ts-common";
 import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 
-import { getChildNodes } from "../ast-utils.js";
 import { createRule } from "../create-rule.js";
+import { getChildNodes } from "../utils/ast.utils.js";
+import { isHookName } from "../utils/react.utils.js";
 
 type LiteralCollection = TSESTree.ArrayExpression | TSESTree.ObjectExpression;
 
@@ -28,35 +30,30 @@ interface ReferencesLocalBindingArgs {
   sourceCode: Readonly<TSESLint.SourceCode>;
 }
 
-/** True if any identifier referenced inside `node` resolves to a binding local to `functionScope`. */
+interface ResolvesToLocalBindingArgs {
+  identifier: TSESTree.Identifier;
+  functionScope: TSESLint.Scope.Scope;
+  sourceCode: Readonly<TSESLint.SourceCode>;
+}
+
+const resolvesToLocalBinding = ({ identifier, functionScope, sourceCode }: ResolvesToLocalBindingArgs): boolean => {
+  const scope = sourceCode.getScope(identifier);
+  const reference = scope.references.find((ref) => ref.identifier === identifier);
+  const variable = reference?.resolved;
+
+  return !!variable && isDescendantScope({ scope: variable.scope, ancestorScope: functionScope });
+};
+
 const referencesLocalBinding = ({ node, functionScope, sourceCode }: ReferencesLocalBindingArgs): boolean => {
-  let found = false;
+  if (node.type === "Identifier") return resolvesToLocalBinding({ identifier: node, functionScope, sourceCode });
 
-  const visit = (current: TSESTree.Node): void => {
-    if (found) return;
-
-    if (current.type === "Identifier") {
-      const scope = sourceCode.getScope(current);
-      const reference = scope.references.find((ref) => ref.identifier === current);
-      const variable = reference?.resolved;
-      if (variable && isDescendantScope({ scope: variable.scope, ancestorScope: functionScope })) {
-        found = true;
-      }
-      return;
-    }
-
-    for (const child of getChildNodes(current)) visit(child);
-  };
-
-  visit(node);
-  return found;
+  return getChildNodes(node).some((child) => referencesLocalBinding({ node: child, functionScope, sourceCode }));
 };
 
 const isNonEmptyLiteral = (node: LiteralCollection): boolean =>
   (node.type === "ArrayExpression" && node.elements.length > 0) ||
   (node.type === "ObjectExpression" && node.properties.length > 0);
 
-/** Name of the function that owns `scope` — a component (PascalCase) or a hook (use[A-Z]...). */
 const getComponentOrHookName = (scope: TSESLint.Scope.Scope): string | undefined => {
   const block = scope.block;
   if (block.type === "FunctionDeclaration" && block.id) return block.id.name;
@@ -66,7 +63,7 @@ const getComponentOrHookName = (scope: TSESLint.Scope.Scope): string | undefined
   return undefined;
 };
 
-const isComponentOrHookName = (name?: string): boolean => !!name && (/^[A-Z]/.test(name) || /^use[A-Z]/.test(name));
+const isComponentOrHookName = (name?: string): boolean => isNotBlank(name) && (/^[A-Z]/.test(name) || isHookName(name));
 
 export default createRule({
   name: "hoist-static-component-constants",
@@ -84,15 +81,16 @@ export default createRule({
   create(context) {
     const sourceCode = context.sourceCode;
 
+    const isComponentOrHookScope = (scope: TSESLint.Scope.Scope): boolean =>
+      scope.type === "function" && isComponentOrHookName(getComponentOrHookName(scope));
+
     return {
       VariableDeclarator(node) {
         if (node.id.type !== "Identifier" || !isLiteralCollection(node.init)) return;
         if (!isNonEmptyLiteral(node.init)) return;
 
         const scope = sourceCode.getScope(node);
-        if (scope.type !== "function") return;
-        if (!isComponentOrHookName(getComponentOrHookName(scope))) return;
-
+        if (!isComponentOrHookScope(scope)) return;
         if (referencesLocalBinding({ node: node.init, functionScope: scope, sourceCode })) return;
 
         context.report({ node, messageId: "hoist", data: { name: node.id.name } });

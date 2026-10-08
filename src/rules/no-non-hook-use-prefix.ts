@@ -1,24 +1,19 @@
+import { isBlank } from "@lichens-innovation/ts-common";
 import type { TSESTree } from "@typescript-eslint/utils";
 
-import { getChildNodes } from "../ast-utils.js";
 import { createRule } from "../create-rule.js";
-
-const HOOK_NAME_RE = /^use[A-Z]/;
-
-type FunctionLike = TSESTree.FunctionDeclaration | TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression;
+import { getChildNodes, getDeclaratorName, type FunctionLike } from "../utils/ast.utils.js";
+import { isHookName } from "../utils/react.utils.js";
 
 interface CheckFunctionArgs {
   node: FunctionLike;
   name?: string;
 }
 
-const callsAHook = (node: TSESTree.Node): boolean => {
-  if (node.type === "CallExpression" && node.callee.type === "Identifier" && HOOK_NAME_RE.test(node.callee.name)) {
-    return true;
-  }
+const isHookCall = (node: TSESTree.Node): boolean =>
+  node.type === "CallExpression" && node.callee.type === "Identifier" && isHookName(node.callee.name);
 
-  return getChildNodes(node).some((child) => callsAHook(child));
-};
+const callsAHook = (node: TSESTree.Node): boolean => isHookCall(node) || getChildNodes(node).some(callsAHook);
 
 export default createRule({
   name: "no-non-hook-use-prefix",
@@ -35,7 +30,7 @@ export default createRule({
   defaultOptions: [],
   create(context) {
     const checkFunction = ({ node, name }: CheckFunctionArgs): void => {
-      if (!name || !HOOK_NAME_RE.test(name)) return;
+      if (isBlank(name) || !isHookName(name)) return;
       if (callsAHook(node.body)) return;
 
       context.report({ node, messageId: "misnamed", data: { name } });
@@ -46,8 +41,7 @@ export default createRule({
         checkFunction({ node, name: node.id?.name });
       },
       "VariableDeclarator > ArrowFunctionExpression"(node: TSESTree.ArrowFunctionExpression) {
-        const declarator = node.parent as TSESTree.VariableDeclarator;
-        checkFunction({ node, name: declarator.id.type === "Identifier" ? declarator.id.name : undefined });
+        checkFunction({ node, name: getDeclaratorName(node.parent as TSESTree.VariableDeclarator) });
       },
     };
   },

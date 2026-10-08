@@ -16,6 +16,7 @@ ESLint flat-config plugin enforcing Lichens Innovation TypeScript/React coding s
   - [All Scripts](#all-scripts)
   - [Contributions](#contributions)
   - [Library semantic versioning](#library-semantic-versioning)
+  - [References](#references)
   - [License](#license)
 
 ## Installation
@@ -44,42 +45,52 @@ Each rule can also be enabled individually via `codingGuide.rules["<rule-name>"]
 
 All rules live under the `coding-guide/` namespace and are enabled by `configs.recommended`. See `docs/rules/<name>.md` for details on each.
 
-| Rule                                                                                             | Description                                                                                      |
-| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| [`filename-convention-by-export-shape`](docs/rules/filename-convention-by-export-shape.md)       | Enforce filename conventions against a file's exported shape                                     |
-| [`hoist-static-component-constants`](docs/rules/hoist-static-component-constants.md)             | Disallow a static array/object literal declared inside a component body                          |
-| [`max-params-project`](docs/rules/max-params-project.md)                                         | Enforce a maximum number of parameters on project-owned functions                                |
-| [`no-explicit-undefined-optional`](docs/rules/no-explicit-undefined-optional.md)                 | Use `?` instead of an explicit `\| undefined` on params/properties that support it               |
-| [`no-exported-mutable-state`](docs/rules/no-exported-mutable-state.md)                           | Disallow exporting a mutable (let/var) module-scoped binding                                     |
-| [`no-hook-returning-jsx`](docs/rules/no-hook-returning-jsx.md)                                   | Disallow a use* hook returning JSX                                                               |
-| [`no-inline-array-chain-in-jsx`](docs/rules/no-inline-array-chain-in-jsx.md)                     | Disallow chained array methods directly inside a JSX expression                                  |
-| [`no-inline-curried-handler`](docs/rules/no-inline-curried-handler.md)                           | Disallow a curried handler factory declared as a local component variable                        |
-| [`no-inline-guard-chain-handler`](docs/rules/no-inline-guard-chain-handler.md)                   | Disallow a JSX prop arrow whose body is a long `&&` guard chain                                  |
-| [`no-inline-object-param-type`](docs/rules/no-inline-object-param-type.md)                       | Disallow inline object type literals on function parameters                                      |
-| [`no-inline-render-function`](docs/rules/no-inline-render-function.md)                           | Disallow local render* helpers that return JSX, and using them from JSX                          |
-| [`no-jsx-in-variable`](docs/rules/no-jsx-in-variable.md)                                         | Disallow storing a JSX element/fragment in a variable                                            |
-| [`no-nested-try`](docs/rules/no-nested-try.md)                                                   | Disallow nesting a try statement inside another try block or catch handler                       |
-| [`no-non-hook-use-prefix`](docs/rules/no-non-hook-use-prefix.md)                                 | Disallow a use* named function whose body calls no hook                                          |
-| [`no-render-fn-in-usecallback`](docs/rules/no-render-fn-in-usecallback.md)                       | Disallow useCallback wrapping a JSX-returning or render*-named function                          |
-| [`no-tests-in-dunder-folder`](docs/rules/no-tests-in-dunder-folder.md)                           | Disallow test files inside a `__tests__` folder                                                  |
-| [`no-trivial-usememo`](docs/rules/no-trivial-usememo.md)                                         | Disallow useMemo whose body has no function call (likely unnecessary memoization)                |
-| [`no-unguarded-json-parse`](docs/rules/no-unguarded-json-parse.md)                               | Require `JSON.parse(...)` to be wrapped in a try/catch                                           |
-| [`one-component-per-tsx-file`](docs/rules/one-component-per-tsx-file.md)                         | Allow at most one React component per `.tsx` file                                                |
-| [`prefer-element-ref-type`](docs/rules/prefer-element-ref-type.md)                               | Prefer `useRef<ComponentRef<"tag">>(null)` over a raw `HTMLXxxElement` type argument             |
-| [`prefer-includes-over-or-chain`](docs/rules/prefer-includes-over-or-chain.md)                   | Prefer `Array#includes` over a chain of `===` comparisons against the same value                 |
-| [`prefer-jsx-short-circuit`](docs/rules/prefer-jsx-short-circuit.md)                             | Prefer `&&` short-circuit for optional JSX, with a boolean left side                             |
-| [`prefer-nullish-helpers`](docs/rules/prefer-nullish-helpers.md)                                 | Prefer `isNullish`/`!isNullish` over a manual null-and-undefined comparison pair                 |
-| [`prefer-positive-condition`](docs/rules/prefer-positive-condition.md)                           | Prefer a positive condition in a ternary over a negated one with swapped branches                |
-| [`prefer-props-with-children`](docs/rules/prefer-props-with-children.md)                         | Prefer `PropsWithChildren<Props>` over a hand-declared `children` property                       |
-| [`prefer-reactnode-over-jsxelement-union`](docs/rules/prefer-reactnode-over-jsxelement-union.md) | Prefer `ReactNode` over a `JSX.Element \| null \| undefined` union                               |
-| [`prefer-role-query-over-testid`](docs/rules/prefer-role-query-over-testid.md)                   | Prefer Testing Library's `*ByRole` queries over `*ByTestId`                                      |
-| [`prefer-some-over-find-check`](docs/rules/prefer-some-over-find-check.md)                       | Prefer `Array#some` over comparing `Array#find`'s result to undefined                            |
-| [`prefer-state-updater-form`](docs/rules/prefer-state-updater-form.md)                           | Prefer the updater-function form of a state setter when the new value depends on the current one |
-| [`require-effect-cleanup`](docs/rules/require-effect-cleanup.md)                                 | Require a cleanup return from a `useEffect` that registers a timer/listener/subscription         |
-| [`require-fallback-on-deep-chain`](docs/rules/require-fallback-on-deep-chain.md)                 | Require a `??` fallback on a deep optional chain                                                 |
-| [`require-numeric-enum-initializer`](docs/rules/require-numeric-enum-initializer.md)             | Require an explicit initializer on every enum member                                             |
-| [`require-usestate-useref-generic`](docs/rules/require-usestate-useref-generic.md)               | Require an explicit generic on `useState()`/`useRef()` when the initial value can't infer one    |
-| [`todo-ticket-ref`](docs/rules/todo-ticket-ref.md)                                               | Require a ticket reference in the TODO comment                                                   |
+| Rule                                                                                             | Description                                                                                        |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| [`filename-convention-by-export-shape`](docs/rules/filename-convention-by-export-shape.md)       | Enforce filename conventions against a file's exported shape                                       |
+| [`hoist-static-component-constants`](docs/rules/hoist-static-component-constants.md)             | Disallow a static array/object literal declared inside a component body                            |
+| [`max-files-per-folder`](docs/rules/max-files-per-folder.md)                                     | Enforce a maximum number of source files per folder                                                |
+| [`max-params-project`](docs/rules/max-params-project.md)                                         | Enforce a maximum number of parameters on project-owned functions                                  |
+| [`no-bind-this`](docs/rules/no-bind-this.md)                                                     | Disallow `.bind(this)` — use an arrow function instead                                             |
+| [`no-double-negation`](docs/rules/no-double-negation.md)                                         | Disallow double negations such as `!isNotBlank(x)`, `!(a !== b)` or an `isNotDisabled` name        |
+| [`no-explicit-undefined-optional`](docs/rules/no-explicit-undefined-optional.md)                 | Use `?` instead of an explicit `\| undefined` on params/properties that support it                 |
+| [`no-exported-mutable-state`](docs/rules/no-exported-mutable-state.md)                           | Disallow exporting a mutable (let/var) module-scoped binding                                       |
+| [`no-hook-returning-jsx`](docs/rules/no-hook-returning-jsx.md)                                   | Disallow a use* hook returning JSX                                                                 |
+| [`no-inline-array-chain-in-jsx`](docs/rules/no-inline-array-chain-in-jsx.md)                     | Disallow chained array methods directly inside a JSX expression                                    |
+| [`no-inline-await-access`](docs/rules/no-inline-await-access.md)                                 | Disallow operating directly on an awaited value, as in `(await promise).property`                  |
+| [`no-inline-curried-handler`](docs/rules/no-inline-curried-handler.md)                           | Disallow a curried handler factory declared as a local component variable                          |
+| [`no-inline-guard-chain-handler`](docs/rules/no-inline-guard-chain-handler.md)                   | Disallow a JSX prop arrow whose body is a long `&&` guard chain                                    |
+| [`no-inline-object-param-type`](docs/rules/no-inline-object-param-type.md)                       | Disallow inline object type literals on function parameters and nested in interface/type members   |
+| [`no-inline-render-function`](docs/rules/no-inline-render-function.md)                           | Disallow local render* helpers that return JSX, and using them from JSX                            |
+| [`no-jsx-in-variable`](docs/rules/no-jsx-in-variable.md)                                         | Disallow storing a JSX element/fragment in a variable                                              |
+| [`no-mobx-reaction`](docs/rules/no-mobx-reaction.md)                                             | Disallow MobX `reaction` — implicit side effects are hard to debug and trace                       |
+| [`no-nested-try`](docs/rules/no-nested-try.md)                                                   | Disallow nesting a try statement inside another try block or catch handler                         |
+| [`no-non-hook-use-prefix`](docs/rules/no-non-hook-use-prefix.md)                                 | Disallow a use* named function whose body calls no hook                                            |
+| [`no-render-fn-in-usecallback`](docs/rules/no-render-fn-in-usecallback.md)                       | Disallow useCallback wrapping a JSX-returning or render*-named function                            |
+| [`no-tests-in-dunder-folder`](docs/rules/no-tests-in-dunder-folder.md)                           | Disallow test files inside a `__tests__` folder                                                    |
+| [`no-trivial-usememo`](docs/rules/no-trivial-usememo.md)                                         | Disallow useMemo whose body has no function call (likely unnecessary memoization)                  |
+| [`no-unguarded-json-parse`](docs/rules/no-unguarded-json-parse.md)                               | Require `JSON.parse(...)` to be wrapped in a try/catch                                             |
+| [`one-component-per-tsx-file`](docs/rules/one-component-per-tsx-file.md)                         | Allow at most one React component per `.tsx` file                                                  |
+| [`prefer-antd-flex`](docs/rules/prefer-antd-flex.md)                                             | Prefer Ant Design `<Flex>` over a `<div className="flex …">` in Ant Design apps                    |
+| [`prefer-blank-helpers`](docs/rules/prefer-blank-helpers.md)                                     | Prefer `isBlank`/`isNotBlank` over empty-string, falsy and `                                       |     | ` checks on strings |
+| [`prefer-each-table`](docs/rules/prefer-each-table.md)                                           | Prefer the tagged-template table form of `.each` over an array of tuples                           |
+| [`prefer-element-ref-type`](docs/rules/prefer-element-ref-type.md)                               | Prefer `useRef<ComponentRef<"tag">>(null)` over a raw `HTMLXxxElement` type argument               |
+| [`prefer-get-error-message`](docs/rules/prefer-get-error-message.md)                             | Prefer `getErrorMessage(error)` over a manual `error instanceof Error ? error.message : …` ternary |
+| [`prefer-includes-over-or-chain`](docs/rules/prefer-includes-over-or-chain.md)                   | Prefer `Array#includes` over a chain of `===` comparisons against the same value                   |
+| [`prefer-jsx-short-circuit`](docs/rules/prefer-jsx-short-circuit.md)                             | Prefer `&&` short-circuit for optional JSX, with a boolean left side                               |
+| [`prefer-nullish-helpers`](docs/rules/prefer-nullish-helpers.md)                                 | Prefer `isNullish`/`!isNullish` over a manual null-and-undefined comparison pair                   |
+| [`prefer-positive-condition`](docs/rules/prefer-positive-condition.md)                           | Prefer a positive condition in a ternary over a negated one with swapped branches                  |
+| [`prefer-props-with-children`](docs/rules/prefer-props-with-children.md)                         | Prefer `PropsWithChildren<Props>` over a hand-declared `children` property                         |
+| [`prefer-reactnode-over-jsxelement-union`](docs/rules/prefer-reactnode-over-jsxelement-union.md) | Prefer `ReactNode` over a `JSX.Element \| null \| undefined` union                                 |
+| [`prefer-role-query-over-testid`](docs/rules/prefer-role-query-over-testid.md)                   | Prefer Testing Library's `*ByRole` queries over `*ByTestId`                                        |
+| [`prefer-some-over-find-check`](docs/rules/prefer-some-over-find-check.md)                       | Prefer `Array#some` over comparing `Array#find`'s result to undefined                              |
+| [`prefer-state-updater-form`](docs/rules/prefer-state-updater-form.md)                           | Prefer the updater-function form of a state setter when the new value depends on the current one   |
+| [`require-aaa-comments`](docs/rules/require-aaa-comments.md)                                     | Require `// arrange`, `// act` and `// assert` comments in multi-statement tests                   |
+| [`require-effect-cleanup`](docs/rules/require-effect-cleanup.md)                                 | Require a cleanup return from a `useEffect` that registers a timer/listener/subscription           |
+| [`require-fallback-on-deep-chain`](docs/rules/require-fallback-on-deep-chain.md)                 | Require a `??` fallback on a deep optional chain                                                   |
+| [`require-numeric-enum-initializer`](docs/rules/require-numeric-enum-initializer.md)             | Require an explicit initializer on every enum member                                               |
+| [`require-usestate-useref-generic`](docs/rules/require-usestate-useref-generic.md)               | Require an explicit generic on `useState()`/`useRef()` when the initial value can't infer one      |
+| [`todo-ticket-ref`](docs/rules/todo-ticket-ref.md)                                               | Require a ticket reference in the TODO comment                                                     |
 
 ## Development
 
@@ -120,6 +131,10 @@ Versioning is automated by [semantic-release](https://semantic-release.gitbook.i
 | `feat!:` / `BREAKING CHANGE:` | `MAJOR` — incompatible API change               |
 
 Follow [Semantic Versioning](https://semver.org/#summary) (`MAJOR.MINOR.PATCH`) when writing commit messages — the tooling takes care of the rest. Commitlint requires a **scope** (e.g. `feat(rules): add no-foo-bar`).
+
+## References
+
+- [Habit-hooks](https://github.com/habit-hooks/habit-hooks)
 
 ## License
 

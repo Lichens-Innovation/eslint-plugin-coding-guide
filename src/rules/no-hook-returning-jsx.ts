@@ -1,43 +1,25 @@
+import { isBlank } from "@lichens-innovation/ts-common";
 import type { TSESTree } from "@typescript-eslint/utils";
 
-import { getChildNodes } from "../ast-utils.js";
 import { createRule } from "../create-rule.js";
-
-const HOOK_NAME_RE = /^use[A-Z]/;
-
-type FunctionLike = TSESTree.FunctionDeclaration | TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression;
+import { getChildNodes, getDeclaratorName, isFunctionNode, isJsxNode, type FunctionLike } from "../utils/ast.utils.js";
+import { isHookName } from "../utils/react.utils.js";
 
 interface CheckFunctionArgs {
   node: FunctionLike;
   name?: string;
 }
 
-const isJsxReturn = (node: TSESTree.ReturnStatement): boolean =>
-  node.argument?.type === "JSXElement" || node.argument?.type === "JSXFragment";
+const containsJsxReturn = (node: TSESTree.Node): boolean => {
+  if (node.type === "ReturnStatement" && isJsxNode(node.argument)) return true;
+
+  return getChildNodes(node).some((child) => !isFunctionNode(child) && containsJsxReturn(child));
+};
 
 const returnsJsxDirectly = (functionNode: FunctionLike): boolean => {
-  let found = false;
+  if (isJsxNode(functionNode.body)) return true;
 
-  const visit = (node: TSESTree.Node): void => {
-    if (found) return;
-    if (
-      node !== functionNode &&
-      ["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"].includes(node.type)
-    ) {
-      return; // don't descend into nested function bodies
-    }
-
-    if (node.type === "ReturnStatement" && isJsxReturn(node)) {
-      found = true;
-      return;
-    }
-
-    for (const child of getChildNodes(node)) visit(child);
-  };
-
-  if (["JSXElement", "JSXFragment"].includes(functionNode.body.type)) return true;
-  visit(functionNode.body);
-  return found;
+  return containsJsxReturn(functionNode.body);
 };
 
 export default createRule({
@@ -55,7 +37,7 @@ export default createRule({
   defaultOptions: [],
   create(context) {
     const checkFunction = ({ node, name }: CheckFunctionArgs): void => {
-      if (!name || !HOOK_NAME_RE.test(name)) return;
+      if (isBlank(name) || !isHookName(name)) return;
       if (!returnsJsxDirectly(node)) return;
 
       context.report({ node, messageId: "hookReturnsJsx", data: { name } });
@@ -66,8 +48,7 @@ export default createRule({
         checkFunction({ node, name: node.id?.name });
       },
       "VariableDeclarator > ArrowFunctionExpression"(node: TSESTree.ArrowFunctionExpression) {
-        const declarator = node.parent as TSESTree.VariableDeclarator;
-        checkFunction({ node, name: declarator.id.type === "Identifier" ? declarator.id.name : undefined });
+        checkFunction({ node, name: getDeclaratorName(node.parent as TSESTree.VariableDeclarator) });
       },
     };
   },

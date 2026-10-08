@@ -9,11 +9,11 @@ ruleTester.run("no-inline-curried-handler", rule, {
   invalid: [
     {
       code: "function Widget() { const makeHandler = (id) => () => doThing(id); return null; }",
-      errors: [{ messageId: "extractToUtils", data: { name: "makeHandler" } }],
+      errors: [{ messageId: "noCurriedHandler", data: { name: "makeHandler" } }],
     },
     {
       code: "function Widget() { const makeHandler = (id) => { return () => doThing(id); }; return null; }",
-      errors: [{ messageId: "extractToUtils", data: { name: "makeHandler" } }],
+      errors: [{ messageId: "noCurriedHandler", data: { name: "makeHandler" } }],
     },
   ],
 });

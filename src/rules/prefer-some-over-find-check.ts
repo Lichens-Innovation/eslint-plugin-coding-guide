@@ -1,6 +1,7 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
+import { isUndefinedIdentifier } from "../utils/ast.utils.js";
 
 const isFindCall = (node: TSESTree.Node): node is TSESTree.CallExpression =>
   node.type === "CallExpression" &&
@@ -8,6 +9,21 @@ const isFindCall = (node: TSESTree.Node): node is TSESTree.CallExpression =>
   !node.callee.computed &&
   node.callee.property.type === "Identifier" &&
   node.callee.property.name === "find";
+
+const isEqualityOperator = (operator: string): boolean => operator === "!==" || operator === "===";
+
+const getFindComparedToUndefined = (node: TSESTree.BinaryExpression): TSESTree.CallExpression | undefined => {
+  const [findSide, otherSide] = node.left.type === "CallExpression" ? [node.left, node.right] : [node.right, node.left];
+  if (!isFindCall(findSide) || !isUndefinedIdentifier(otherSide)) return undefined;
+
+  return findSide;
+};
+
+interface ReportWithSomeArgs {
+  node: TSESTree.Node;
+  findCall: TSESTree.CallExpression;
+  negate: boolean;
+}
 
 export default createRule({
   name: "prefer-some-over-find-check",
@@ -33,37 +49,31 @@ export default createRule({
       return `${calleeText}.some(${argsText})`;
     };
 
+    const reportWithSome = ({ node, findCall, negate }: ReportWithSomeArgs): void => {
+      context.report({
+        node,
+        messageId: "preferSome",
+        fix: (fixer) => {
+          const someText = toSomeCallText(findCall);
+          return fixer.replaceText(node, negate ? `!${someText}` : someText);
+        },
+      });
+    };
+
     return {
       BinaryExpression(node) {
-        if (node.operator !== "!==" && node.operator !== "===") return;
+        if (!isEqualityOperator(node.operator)) return;
 
-        const [findSide, otherSide] =
-          node.left.type === "CallExpression" ? [node.left, node.right] : [node.right, node.left];
+        const findCall = getFindComparedToUndefined(node);
+        if (!findCall) return;
 
-        if (!isFindCall(findSide)) return;
-        if (otherSide.type !== "Identifier" || otherSide.name !== "undefined") return;
-
-        const negate = node.operator === "===";
-
-        context.report({
-          node,
-          messageId: "preferSome",
-          fix: (fixer) => {
-            const someText = toSomeCallText(findSide);
-            return fixer.replaceText(node, negate ? `!${someText}` : someText);
-          },
-        });
+        reportWithSome({ node, findCall, negate: node.operator === "===" });
       },
       UnaryExpression(node) {
         if (node.operator !== "!" || !node.prefix) return;
-        const findCall = node.argument;
-        if (!isFindCall(findCall)) return;
+        if (!isFindCall(node.argument)) return;
 
-        context.report({
-          node,
-          messageId: "preferSome",
-          fix: (fixer) => fixer.replaceText(node, `!${toSomeCallText(findCall)}`),
-        });
+        reportWithSome({ node, findCall: node.argument, negate: true });
       },
     };
   },

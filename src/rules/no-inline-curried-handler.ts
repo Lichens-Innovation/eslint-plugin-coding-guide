@@ -17,12 +17,12 @@ export default createRule({
   meta: {
     type: "suggestion",
     docs: {
-      description: "Disallow a curried handler factory declared as a local component variable",
+      description: "Disallow a curried handler factory declared as a local variable inside a function",
     },
     schema: [],
     messages: {
-      extractToUtils:
-        "'{{name}}' is a curried handler factory declared inside a component — move it to a *.utils.ts file.",
+      noCurriedHandler:
+        "'{{name}}' is a curried handler factory declared inside a function — write the handler inline at the call site (`() => fn(id)`) or extract a child component that owns it; move it to a *.utils.ts file only if it uses no state, props or hooks.",
     },
   },
   defaultOptions: [],
@@ -35,7 +35,7 @@ export default createRule({
         const scope = context.sourceCode.getScope(node);
         if (scope.type !== "function") return; // module-scope factories are fine
 
-        context.report({ node, messageId: "extractToUtils", data: { name: node.id.name } });
+        context.report({ node, messageId: "noCurriedHandler", data: { name: node.id.name } });
       },
     };
   },

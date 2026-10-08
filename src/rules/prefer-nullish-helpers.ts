@@ -1,9 +1,26 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
+import { isNullOrUndefined } from "../utils/ast.utils.js";
 
-const isNullOrUndefinedLiteral = (node: TSESTree.Expression): boolean =>
-  (node.type === "Literal" && node.value === null) || (node.type === "Identifier" && node.name === "undefined");
+type ComparisonOperator = "!==" | "===";
+
+interface CheckPairArgs {
+  node: TSESTree.LogicalExpression;
+  operator: ComparisonOperator;
+  logicalOperator: "&&" | "||";
+  messageId: "preferNotNullish" | "preferNullish";
+}
+
+interface ComparisonPair {
+  left: TSESTree.BinaryExpression;
+  right: TSESTree.BinaryExpression;
+}
+
+const isNullishComparisonWith =
+  (operator: ComparisonOperator) =>
+  (node: TSESTree.Expression): node is TSESTree.BinaryExpression =>
+    node.type === "BinaryExpression" && node.operator === operator && isNullOrUndefined(node.right);
 
 export default createRule({
   name: "prefer-nullish-helpers",
@@ -22,31 +39,22 @@ export default createRule({
   create(context) {
     const sourceCode = context.sourceCode;
 
-    interface CheckPairArgs {
-      node: TSESTree.LogicalExpression;
-      operator: "!==" | "===";
-      logicalOperator: "&&" | "||";
-      messageId: "preferNotNullish" | "preferNullish";
-    }
+    const getSharedComparedText = ({ left, right }: ComparisonPair): string | undefined => {
+      const leftExpr = sourceCode.getText(left.left);
+      return leftExpr === sourceCode.getText(right.left) ? leftExpr : undefined;
+    };
 
     const checkPair = ({ node, operator, logicalOperator, messageId }: CheckPairArgs): void => {
       if (node.operator !== logicalOperator) return;
 
-      const matchesNullishComparison = (side: TSESTree.Expression): side is TSESTree.BinaryExpression =>
-        side.type === "BinaryExpression" && side.operator === operator && isNullOrUndefinedLiteral(side.right);
+      const { left, right } = node;
+      const isNullishComparison = isNullishComparisonWith(operator);
+      if (!isNullishComparison(left) || !isNullishComparison(right)) return;
 
-      if (!matchesNullishComparison(node.left)) return;
-      if (!matchesNullishComparison(node.right)) return;
+      const expr = getSharedComparedText({ left, right });
+      if (expr === undefined) return;
 
-      const leftExpr = sourceCode.getText(node.left.left);
-      const rightExpr = sourceCode.getText(node.right.left);
-      if (leftExpr !== rightExpr) return;
-
-      context.report({
-        node,
-        messageId,
-        data: { expr: leftExpr },
-      });
+      context.report({ node, messageId, data: { expr } });
     };
 
     return {

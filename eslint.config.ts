@@ -84,6 +84,11 @@ export default tseslint.config(
     },
   },
   {
+    // One flat file per rule mirrors docs/rules/ and the rules registry — sub-folders would only add noise.
+    files: ["src/rules/**"],
+    rules: { "coding-guide/max-files-per-folder": "off" },
+  },
+  {
     // Aggregator entry points — a generic "index" filename is the intended convention here.
     files: ["src/index.ts", "src/rules/index.ts"],
     rules: { "coding-guide/filename-convention-by-export-shape": "off" },

@@ -1,7 +1,11 @@
+import { isBlank } from "@lichens-innovation/ts-common";
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
+import { hasNamedImport, isIdentifierCall } from "../utils/ast.utils.js";
 
+// `HTMLHeadingElement` is shared by h1–h6 and `HTMLTableCellElement` by td/th, so they are left
+// unmapped: the report asks for the tag instead of guessing one.
 const TAG_BY_HTML_ELEMENT: Record<string, string> = {
   HTMLDivElement: "div",
   HTMLSpanElement: "span",
@@ -19,61 +23,62 @@ const TAG_BY_HTML_ELEMENT: Record<string, string> = {
   HTMLAudioElement: "audio",
   HTMLImageElement: "img",
   HTMLParagraphElement: "p",
-  HTMLHeadingElement: "h1",
   HTMLLabelElement: "label",
 };
 
-const hasElementRefImported = (program: TSESTree.Program): boolean =>
-  program.body.some(
-    (statement) =>
-      statement.type === "ImportDeclaration" &&
-      statement.source.value === "react" &&
-      statement.specifiers.some(
-        (specifier) =>
-          specifier.type === "ImportSpecifier" &&
-          specifier.imported.type === "Identifier" &&
-          specifier.imported.name === "ElementRef"
-      )
-  );
+interface HtmlElementTypeArg {
+  typeArg: TSESTree.TSTypeReference;
+  typeName: string;
+}
+
+const getHtmlElementTypeArg = (node: TSESTree.CallExpression): HtmlElementTypeArg | null => {
+  const typeArg = node.typeArguments?.params[0];
+  if (!typeArg || typeArg.type !== "TSTypeReference" || typeArg.typeName.type !== "Identifier") return null;
+
+  const typeName = typeArg.typeName.name;
+  if (!/^HTML\w*Element$/.test(typeName)) return null;
+
+  return { typeArg, typeName };
+};
 
 export default createRule({
   name: "prefer-element-ref-type",
   meta: {
     type: "suggestion",
     docs: {
-      description: 'Prefer useRef<ElementRef<"tag">>(null) over a raw HTMLXxxElement type argument',
+      description: 'Prefer useRef<ComponentRef<"tag">>(null) over a raw HTMLXxxElement type argument',
     },
     fixable: "code",
     schema: [],
     messages: {
-      preferElementRef: 'Use `ElementRef<"{{tag}}">` instead of `{{typeName}}` for this ref.',
+      preferElementRef: 'Use `ComponentRef<"{{tag}}">` (from "react") instead of `{{typeName}}` for this ref.',
+      preferElementRefUnknownTag:
+        'Use `ComponentRef<"tag">` (from "react") with the JSX tag this ref is attached to, instead of `{{typeName}}`.',
     },
   },
   defaultOptions: [],
   create(context) {
     return {
       CallExpression(node) {
-        if (node.callee.type !== "Identifier" || node.callee.name !== "useRef") return;
+        if (!isIdentifierCall({ node, name: "useRef" })) return;
 
-        const typeArg = node.typeArguments?.params[0];
-        if (!typeArg || typeArg.type !== "TSTypeReference" || typeArg.typeName.type !== "Identifier") return;
+        const htmlElementTypeArg = getHtmlElementTypeArg(node);
+        if (!htmlElementTypeArg) return;
 
-        const typeName = typeArg.typeName.name;
-        if (!/^HTML\w*Element$/.test(typeName)) return;
-
+        const { typeArg, typeName } = htmlElementTypeArg;
         const tag = TAG_BY_HTML_ELEMENT[typeName];
-        if (!tag) {
-          context.report({ node: typeArg, messageId: "preferElementRef", data: { typeName, tag: "?" } });
+        if (isBlank(tag)) {
+          context.report({ node: typeArg, messageId: "preferElementRefUnknownTag", data: { typeName } });
           return;
         }
 
-        const canAutofix = hasElementRefImported(context.sourceCode.ast);
+        const canAutofix = hasNamedImport({ program: context.sourceCode.ast, source: "react", name: "ComponentRef" });
 
         context.report({
           node: typeArg,
           messageId: "preferElementRef",
           data: { typeName, tag },
-          fix: canAutofix ? (fixer) => fixer.replaceText(typeArg, `ElementRef<"${tag}">`) : undefined,
+          fix: canAutofix ? (fixer) => fixer.replaceText(typeArg, `ComponentRef<"${tag}">`) : undefined,
         });
       },
     };

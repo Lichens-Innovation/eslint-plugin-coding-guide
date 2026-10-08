@@ -1,7 +1,23 @@
-import { functionReturnsJsx } from "../ast-utils.js";
+import type { TSESTree } from "@typescript-eslint/utils";
+
 import { createRule } from "../create-rule.js";
+import { isIdentifierCall, isInlineFunction, type InlineFunction } from "../utils/ast.utils.js";
+import { functionReturnsJsx } from "../utils/react.utils.js";
 
 const RENDER_NAME_RE = /^render/i;
+
+const getBoundName = (node: TSESTree.CallExpression): string => {
+  const declarator = node.parent.type === "VariableDeclarator" ? node.parent : null;
+  return declarator?.id.type === "Identifier" ? declarator.id.name : "";
+};
+
+interface IsRenderCallbackArgs {
+  node: TSESTree.CallExpression;
+  callback: InlineFunction;
+}
+
+const isRenderCallback = ({ node, callback }: IsRenderCallbackArgs): boolean =>
+  functionReturnsJsx(callback) || RENDER_NAME_RE.test(getBoundName(node));
 
 export default createRule({
   name: "no-render-fn-in-usecallback",
@@ -20,17 +36,11 @@ export default createRule({
   create(context) {
     return {
       CallExpression(node) {
-        if (node.callee.type !== "Identifier" || node.callee.name !== "useCallback") return;
+        if (!isIdentifierCall({ node, name: "useCallback" })) return;
 
         const [callback] = node.arguments;
-        if (!callback || (callback.type !== "ArrowFunctionExpression" && callback.type !== "FunctionExpression")) {
-          return;
-        }
-
-        const declarator = node.parent.type === "VariableDeclarator" ? node.parent : null;
-        const boundName = declarator?.id.type === "Identifier" ? declarator.id.name : "";
-
-        if (!functionReturnsJsx(callback) && !RENDER_NAME_RE.test(boundName)) return;
+        if (!isInlineFunction(callback)) return;
+        if (!isRenderCallback({ node, callback })) return;
 
         context.report({ node, messageId: "extractSubcomponent" });
       },
