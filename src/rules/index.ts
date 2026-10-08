@@ -22,6 +22,7 @@ import oneComponentPerTsxFile from "./one-component-per-tsx-file.js";
 import preferBlankHelpers from "./prefer-blank-helpers.js";
 import preferEachTable from "./prefer-each-table.js";
 import preferElementRefType from "./prefer-element-ref-type.js";
+import preferGetErrorMessage from "./prefer-get-error-message.js";
 import preferIncludesOverOrChain from "./prefer-includes-over-or-chain.js";
 import preferJsxShortCircuit from "./prefer-jsx-short-circuit.js";
 import preferNullishHelpers from "./prefer-nullish-helpers.js";
@@ -62,6 +63,7 @@ export const rules = {
   "prefer-blank-helpers": preferBlankHelpers,
   "prefer-each-table": preferEachTable,
   "prefer-element-ref-type": preferElementRefType,
+  "prefer-get-error-message": preferGetErrorMessage,
   "prefer-includes-over-or-chain": preferIncludesOverOrChain,
   "prefer-jsx-short-circuit": preferJsxShortCircuit,
   "prefer-nullish-helpers": preferNullishHelpers,
