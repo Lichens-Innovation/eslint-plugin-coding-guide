@@ -1,3 +1,4 @@
+import { isBlank } from "@lichens-innovation/ts-common";
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
@@ -62,7 +63,7 @@ export default createRule({
         if (!/^HTML\w*Element$/.test(typeName)) return;
 
         const tag = TAG_BY_HTML_ELEMENT[typeName];
-        if (!tag) {
+        if (isBlank(tag)) {
           context.report({ node: typeArg, messageId: "preferElementRef", data: { typeName, tag: "?" } });
           return;
         }

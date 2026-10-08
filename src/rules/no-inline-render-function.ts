@@ -1,3 +1,4 @@
+import { isBlank } from "@lichens-innovation/ts-common";
 import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 
 import { functionReturnsJsx } from "../ast-utils.js";
@@ -43,7 +44,10 @@ const isInsideJsx = (node: TSESTree.Node): boolean => {
 const isCallCallee = (node: TSESTree.Identifier): boolean =>
   node.parent.type === "CallExpression" && node.parent.callee === node;
 
-const suggestedName = (name: string): string => name.slice("render".length) || "Section";
+const suggestedName = (name: string): string => {
+  const suffix = name.slice("render".length);
+  return isBlank(suffix) ? "Section" : suffix;
+};
 
 export default createRule({
   name: "no-inline-render-function",
@@ -118,7 +122,7 @@ export default createRule({
     };
 
     const checkRenderFunction = ({ node, name }: CheckRenderFunctionArgs): void => {
-      if (!name || !RENDER_NAME_RE.test(name)) return;
+      if (isBlank(name) || !RENDER_NAME_RE.test(name)) return;
       if (!functionReturnsJsx(node)) return;
       if (!isNestedInFunctionScope(node)) return;
 

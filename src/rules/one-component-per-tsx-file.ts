@@ -1,3 +1,4 @@
+import { isBlank } from "@lichens-innovation/ts-common";
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { functionReturnsJsx } from "../ast-utils.js";
@@ -43,7 +44,7 @@ const getFunctionLike = (init?: TSESTree.Expression | null): FunctionLike | null
 };
 
 const tryAddComponent = ({ found, node, name }: TryAddComponentArgs): void => {
-  if (!name || !isComponentName(name)) return;
+  if (isBlank(name) || !isComponentName(name)) return;
   if (!functionReturnsJsx(node)) return;
   found.push({ node, name });
 };

@@ -1,3 +1,4 @@
+import { isBlank } from "@lichens-innovation/ts-common";
 import { ESLintUtils, type TSESLint, type TSESTree } from "@typescript-eslint/utils";
 import type * as ts from "typescript";
 
@@ -145,7 +146,7 @@ const classMethodOverridesExternal = ({
   if (classLike.type !== "ClassDeclaration" && classLike.type !== "ClassExpression") return false;
 
   const methodName = methodDef.key.type === "Identifier" ? methodDef.key.name : null;
-  if (!methodName) return false;
+  if (isBlank(methodName)) return false;
 
   const tsClass = services.esTreeNodeToTSNodeMap.get(classLike);
   const classType = checker.getTypeAtLocation(tsClass);

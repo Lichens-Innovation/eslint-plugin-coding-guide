@@ -46,6 +46,7 @@
     "eslint": ">=9.0.0"
   },
   "dependencies": {
+    "@lichens-innovation/ts-common": "1.27.2",
     "@typescript-eslint/utils": "8.71.1"
   },
   "devDependencies": {

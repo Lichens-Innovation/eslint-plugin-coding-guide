@@ -1,3 +1,4 @@
+import { isBlank } from "@lichens-innovation/ts-common";
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { getChildNodes } from "../ast-utils.js";
@@ -55,7 +56,7 @@ export default createRule({
   defaultOptions: [],
   create(context) {
     const checkFunction = ({ node, name }: CheckFunctionArgs): void => {
-      if (!name || !HOOK_NAME_RE.test(name)) return;
+      if (isBlank(name) || !HOOK_NAME_RE.test(name)) return;
       if (!returnsJsxDirectly(node)) return;
 
       context.report({ node, messageId: "hookReturnsJsx", data: { name } });

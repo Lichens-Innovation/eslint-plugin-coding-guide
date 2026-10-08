@@ -1,3 +1,4 @@
+import { isNotBlank } from "@lichens-innovation/ts-common";
 import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 
 import { getChildNodes } from "../ast-utils.js";
@@ -66,7 +67,8 @@ const getComponentOrHookName = (scope: TSESLint.Scope.Scope): string | undefined
   return undefined;
 };
 
-const isComponentOrHookName = (name?: string): boolean => !!name && (/^[A-Z]/.test(name) || /^use[A-Z]/.test(name));
+const isComponentOrHookName = (name?: string): boolean =>
+  isNotBlank(name) && (/^[A-Z]/.test(name) || /^use[A-Z]/.test(name));
 
 export default createRule({
   name: "hoist-static-component-constants",
