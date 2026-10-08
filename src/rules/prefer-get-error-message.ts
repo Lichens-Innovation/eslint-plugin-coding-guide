@@ -1,18 +1,17 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
+import { isNegation } from "../utils/ast.utils.js";
 
 const ERROR_CLASS_NAME = "Error";
 const MESSAGE_PROPERTY = "message";
 
-/** `x instanceof Error` → `x` */
 const getInstanceofErrorSubject = (node: TSESTree.Expression): TSESTree.Expression | undefined => {
   if (node.type !== "BinaryExpression" || node.operator !== "instanceof") return undefined;
   if (node.right.type !== "Identifier" || node.right.name !== ERROR_CLASS_NAME) return undefined;
   return node.left;
 };
 
-/** `x.message` / `x?.message` → `x` */
 const getMessageSubject = (node: TSESTree.Expression): TSESTree.Expression | undefined => {
   const inner = node.type === "ChainExpression" ? node.expression : node;
   if (inner.type !== "MemberExpression" || inner.computed) return undefined;
@@ -27,8 +26,8 @@ interface ResolvedCheck {
 
 /** Resolves `x instanceof Error ? x.message : …` and its negated `!(x instanceof Error) ? … : x.message` form. */
 const resolveCheck = (node: TSESTree.ConditionalExpression): ResolvedCheck | undefined => {
-  const isNegated = node.test.type === "UnaryExpression" && node.test.operator === "!";
-  const test = isNegated && node.test.type === "UnaryExpression" ? node.test.argument : node.test;
+  const isNegated = isNegation(node.test);
+  const test = isNegation(node.test) ? node.test.argument : node.test;
   const subject = getInstanceofErrorSubject(test);
   if (!subject) return undefined;
 
@@ -52,18 +51,17 @@ export default createRule({
   create(context) {
     const sourceCode = context.sourceCode;
 
+    const readsMessageOfSubject = ({ subject, messageBranch }: ResolvedCheck): boolean => {
+      const messageSubject = getMessageSubject(messageBranch);
+      return !!messageSubject && sourceCode.getText(messageSubject) === sourceCode.getText(subject);
+    };
+
     return {
       ConditionalExpression(node) {
         const check = resolveCheck(node);
-        if (!check) return;
+        if (!check || !readsMessageOfSubject(check)) return;
 
-        const messageSubject = getMessageSubject(check.messageBranch);
-        if (!messageSubject) return;
-
-        const expr = sourceCode.getText(check.subject);
-        if (sourceCode.getText(messageSubject) !== expr) return;
-
-        context.report({ node, messageId: "preferGetErrorMessage", data: { expr } });
+        context.report({ node, messageId: "preferGetErrorMessage", data: { expr: sourceCode.getText(check.subject) } });
       },
     };
   },

@@ -2,6 +2,14 @@ import type { TSESTree } from "@typescript-eslint/utils";
 import type { Type } from "typescript";
 
 import { createRule } from "../create-rule.js";
+import {
+  flattenLogicalChain,
+  isJsxNode,
+  isNegation,
+  isNullLiteral,
+  isTypeWrapper,
+  isUndefinedIdentifier,
+} from "../utils/ast.utils.js";
 
 // Mirrors the ts.TypeFlags bit values we need — avoids a runtime dependency on
 // the "typescript" package just for these constants (the `Type` values themselves
@@ -21,33 +29,23 @@ const BOOLEANISH_FLAGS =
   TYPE_FLAG_NEVER;
 
 const unwrap = (node: TSESTree.Expression): TSESTree.Expression => {
-  let current: TSESTree.Expression = node;
-  while (
-    current.type === "TSAsExpression" ||
-    current.type === "TSSatisfiesExpression" ||
-    current.type === "TSTypeAssertion" ||
-    current.type === "TSNonNullExpression" ||
-    current.type === "ChainExpression"
-  ) {
+  let current = node;
+  while (isTypeWrapper(current) || current.type === "ChainExpression") {
     current = current.expression;
   }
   return current;
 };
 
-const isJsxNode = (node?: TSESTree.Node): node is TSESTree.JSXElement | TSESTree.JSXFragment =>
-  !!node && ["JSXElement", "JSXFragment"].includes(node.type);
-
 const isJsxChildExpression = (node: TSESTree.Node): boolean => {
   const container = node.parent;
   if (!container || container.type !== "JSXExpressionContainer") return false;
-  const grandparent = container.parent;
-  return !!grandparent && ["JSXElement", "JSXFragment"].includes(grandparent.type);
+  return isJsxNode(container.parent);
 };
 
 const isDiscardedNode = (node: TSESTree.Expression): boolean => {
   const inner = unwrap(node);
-  if (inner.type === "Literal" && (inner.value === null || inner.value === false)) return true;
-  return inner.type === "Identifier" && inner.name === "undefined";
+  if (inner.type === "Literal" && inner.value === false) return true;
+  return isNullLiteral(inner) || isUndefinedIdentifier(inner);
 };
 
 const isLengthAccess = (node: TSESTree.Expression): boolean => {
@@ -62,7 +60,7 @@ const isLengthAccess = (node: TSESTree.Expression): boolean => {
 
 const isSyntacticallyBoolean = (node: TSESTree.Expression): boolean => {
   const inner = unwrap(node);
-  if (inner.type === "UnaryExpression" && inner.operator === "!") return true;
+  if (isNegation(inner)) return true;
   if (inner.type === "BinaryExpression") return true;
   if (inner.type === "CallExpression") return true;
   if (inner.type === "Literal" && typeof inner.value === "boolean") return true;
@@ -72,6 +70,16 @@ const isSyntacticallyBoolean = (node: TSESTree.Expression): boolean => {
   return false;
 };
 
+const needsCoerceWithoutType = (node: TSESTree.Expression): boolean => {
+  const inner = unwrap(node);
+  if (inner.type === "Identifier") return false;
+  if (inner.type === "Literal" && typeof inner.value === "boolean") return false;
+  return !isJsxNode(inner);
+};
+
+const isOptionalJsxTernary = (node: TSESTree.ConditionalExpression): boolean =>
+  isJsxNode(node.consequent) && isDiscardedNode(node.alternate);
+
 const isBooleanishType = (type?: Type): boolean => {
   if (!type) return false;
   if (type.flags & BOOLEANISH_FLAGS) return true;
@@ -79,17 +87,10 @@ const isBooleanishType = (type?: Type): boolean => {
   return false;
 };
 
-const collectAndLeaves = (node: TSESTree.Expression): TSESTree.Expression[] => {
-  if (node.type === "LogicalExpression" && node.operator === "&&") {
-    return [...collectAndLeaves(node.left), ...collectAndLeaves(node.right)];
-  }
-  return [node];
-};
-
 // The last `&&` operand is the rendered content (JSX, string, node...), not a guard —
 // only the preceding operands can leak a falsy non-boolean value into the output.
 const collectGuardLeaves = (node: TSESTree.Expression): TSESTree.Expression[] =>
-  collectAndLeaves(node)
+  flattenLogicalChain({ node, operator: "&&" })
     .slice(0, -1)
     .filter((leaf) => !isJsxNode(leaf));
 
@@ -140,10 +141,7 @@ export default createRule({
       const type = getTypeAtNode(node);
       if (type) return !isBooleanishType(type);
 
-      const inner = unwrap(node);
-      if (inner.type === "Identifier") return false;
-      if (inner.type === "Literal" && typeof inner.value === "boolean") return false;
-      return inner.type !== "JSXElement" && inner.type !== "JSXFragment";
+      return needsCoerceWithoutType(node);
     };
 
     const coerceText = (node: TSESTree.Expression): string => {
@@ -168,7 +166,7 @@ export default createRule({
       "JSXExpressionContainer > ConditionalExpression"(node: TSESTree.Node) {
         if (node.type !== "ConditionalExpression") return;
         if (!isJsxChildExpression(node)) return;
-        if (!isJsxNode(node.consequent) || !isDiscardedNode(node.alternate)) return;
+        if (!isOptionalJsxTernary(node)) return;
 
         context.report({
           node,

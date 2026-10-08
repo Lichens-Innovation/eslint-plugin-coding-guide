@@ -2,6 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, extname, matchesGlob } from "node:path";
 
 import { createRule } from "../create-rule.js";
+import { toPosixPath } from "../utils/file.utils.js";
 
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mts", ".cts"]);
 
@@ -50,14 +51,17 @@ export default createRule<[Options], "tooManyFiles">({
     const max = options.max ?? DEFAULT_MAX;
     const ignoreFolders = options.ignoreFolders ?? [];
 
+    const isIgnoredFolder = (folder: string): boolean => ignoreFolders.some((pattern) => matchesGlob(folder, pattern));
+
+    const isCheckableFolder = (folder: string): boolean => existsSync(folder) && !isIgnoredFolder(folder);
+
     return {
       Program(node) {
-        const filename = context.filename.replaceAll("\\", "/");
+        const filename = toPosixPath(context.filename);
         if (!isCountedSourceFile(basename(filename))) return;
 
         const folder = dirname(filename);
-        if (!existsSync(folder)) return;
-        if (ignoreFolders.some((pattern) => matchesGlob(folder, pattern))) return;
+        if (!isCheckableFolder(folder)) return;
 
         const count = countSourceFiles(folder);
         if (count <= max) return;

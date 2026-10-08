@@ -21,23 +21,32 @@ const isNonReferencePosition = ({ node, key }: NonReferencePositionArgs): boolea
 const isAstNode = (value: unknown): value is TSESTree.Node =>
   !!value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string";
 
-const makeReferencesIdentifier = (name: string): ((node: unknown) => boolean) => {
-  const referencesIdentifier = (node: unknown): boolean => {
-    if (!isAstNode(node)) return false;
-    if (node.type === "Identifier" && node.name === name) return true;
+const getReferenceChildren = (node: TSESTree.Node): unknown[] =>
+  Object.entries(node)
+    .filter(([key]) => key !== "parent" && !isNonReferencePosition({ node, key }))
+    .flatMap(([, value]) => (Array.isArray(value) ? value : [value]));
 
-    for (const key of Object.keys(node)) {
-      if (key === "parent" || isNonReferencePosition({ node, key })) continue;
-      const value = (node as unknown as Record<string, unknown>)[key];
-      const matches = Array.isArray(value) ? value.some(referencesIdentifier) : referencesIdentifier(value);
-      if (matches) return true;
-    }
+interface ReferencesIdentifierArgs {
+  node: unknown;
+  name: string;
+}
 
-    return false;
-  };
+const referencesIdentifier = ({ node, name }: ReferencesIdentifierArgs): boolean => {
+  if (!isAstNode(node)) return false;
+  if (node.type === "Identifier" && node.name === name) return true;
 
-  return referencesIdentifier;
+  return getReferenceChildren(node).some((child) => referencesIdentifier({ node: child, name }));
 };
+
+const isStateSetterCall = (
+  node: TSESTree.CallExpression
+): node is TSESTree.CallExpression & { callee: TSESTree.Identifier } =>
+  node.callee.type === "Identifier" && /^set[A-Z]/.test(node.callee.name);
+
+const isUpdaterFunction = (node: TSESTree.CallExpressionArgument): boolean =>
+  ["ArrowFunctionExpression", "FunctionExpression"].includes(node.type);
+
+const toStateName = (setterName: string): string => decapitalize(setterName.slice("set".length));
 
 export default createRule({
   name: "prefer-state-updater-form",
@@ -56,14 +65,13 @@ export default createRule({
   create(context) {
     return {
       CallExpression(node) {
-        if (node.callee.type !== "Identifier" || !/^set[A-Z]/.test(node.callee.name)) return;
-        if (node.arguments.length !== 1) return;
+        if (!isStateSetterCall(node) || node.arguments.length !== 1) return;
 
         const [arg] = node.arguments;
-        if (["ArrowFunctionExpression", "FunctionExpression"].includes(arg.type)) return; // already updater form
+        if (isUpdaterFunction(arg)) return;
 
-        const stateName = decapitalize(node.callee.name.slice("set".length));
-        if (!makeReferencesIdentifier(stateName)(arg)) return;
+        const stateName = toStateName(node.callee.name);
+        if (!referencesIdentifier({ node: arg, name: stateName })) return;
 
         context.report({
           node,

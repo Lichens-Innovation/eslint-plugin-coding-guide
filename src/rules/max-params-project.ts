@@ -3,6 +3,8 @@ import { ESLintUtils, type TSESLint, type TSESTree } from "@typescript-eslint/ut
 import type * as ts from "typescript";
 
 import { createRule } from "../create-rule.js";
+import { type FunctionLike } from "../utils/ast.utils.js";
+import { toPosixPath } from "../utils/file.utils.js";
 
 const WRAPPER_TYPES = new Set<string>([
   "Property",
@@ -17,8 +19,6 @@ const WRAPPER_TYPES = new Set<string>([
   "TSNonNullExpression",
   "TSTypeAssertion",
 ]);
-
-type FunctionLike = TSESTree.FunctionDeclaration | TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression;
 
 const EXPLANATION = `
 {{name}} has {{count}} parameters. Maximum allowed is {{max}}.
@@ -39,13 +39,16 @@ export interface Options {
   max?: number;
 }
 
+const resolveMax = (option: number | Options): number => (typeof option === "number" ? option : (option.max ?? 1));
+
+const getMethodName = (method: TSESTree.MethodDefinition | TSESTree.Property): string =>
+  method.key.type === "Identifier" ? `Method '${method.key.name}'` : "Method";
+
 const getFunctionName = (node: FunctionLike): string => {
   const parent = node.parent;
   if (node.type === "ArrowFunctionExpression") return "Arrow function";
   if (parent?.type === "MethodDefinition" || (parent?.type === "Property" && parent.method)) {
-    const key = parent.key;
-    if (key.type === "Identifier") return `Method '${key.name}'`;
-    return "Method";
+    return getMethodName(parent);
   }
   if (node.type === "FunctionDeclaration" && node.id?.name) return `Function '${node.id.name}'`;
   if (parent?.type === "VariableDeclarator" && parent.id.type === "Identifier") {
@@ -84,8 +87,19 @@ const isPassedAsCallArgument = (node: TSESTree.Node): boolean => {
 };
 
 const isExternalFile = (fileName: string): boolean => {
-  const normalized = fileName.replaceAll("\\", "/");
+  const normalized = toPosixPath(fileName);
   return normalized.includes("/node_modules/") || normalized.includes("/typescript/lib/");
+};
+
+const getCallSignatureFiles = (type: ts.Type): string[] =>
+  type
+    .getCallSignatures()
+    .flatMap((signature) => signature.getDeclaration() ?? [])
+    .map((declaration) => declaration.getSourceFile().fileName);
+
+const getSymbolDeclarationFiles = (type: ts.Type): string[] => {
+  const symbol = type.aliasSymbol ?? type.getSymbol();
+  return (symbol?.getDeclarations() ?? []).map((declaration) => declaration.getSourceFile().fileName);
 };
 
 const typeDeclaredExternally = (type: ts.Type): boolean => {
@@ -99,18 +113,7 @@ const typeDeclaredExternally = (type: ts.Type): boolean => {
       return current.types.flatMap(collectDeclarationFiles);
     }
 
-    const files: string[] = [];
-    for (const signature of current.getCallSignatures()) {
-      const declaration = signature.getDeclaration();
-      if (declaration) files.push(declaration.getSourceFile().fileName);
-    }
-
-    const symbol = current.aliasSymbol ?? current.getSymbol();
-    for (const declaration of symbol?.getDeclarations() ?? []) {
-      files.push(declaration.getSourceFile().fileName);
-    }
-
-    return files;
+    return [...getCallSignatureFiles(current), ...getSymbolDeclarationFiles(current)];
   };
 
   return collectDeclarationFiles(type).some(isExternalFile);
@@ -192,7 +195,7 @@ export default createRule<[number | Options], "exceed">({
   },
   defaultOptions: [1],
   create(context, [option]) {
-    const max = typeof option === "number" ? option : (option.max ?? 1);
+    const max = resolveMax(option);
 
     const findVariable = (identifierNode: TSESTree.Identifier): TSESLint.Scope.Variable | null => {
       let scope: TSESLint.Scope.Scope | null = context.sourceCode.getScope(identifierNode);
@@ -226,18 +229,22 @@ export default createRule<[number | Options], "exceed">({
       return isImposedThroughVariableUsage(node);
     };
 
+    const checkImposedByExternalType = (node: FunctionLike): boolean => {
+      const services = ESLintUtils.getParserServices(context, true);
+      if (!services.program) return false;
+
+      const checker = services.program.getTypeChecker();
+      const tsNode = services.esTreeNodeToTSNodeMap.get(node);
+      if (!tsNode) return false;
+
+      if (isContextuallyExternal({ node, tsNode, checker })) return true;
+
+      return classMethodOverridesExternal({ functionNode: node, services, checker });
+    };
+
     const isImposedByExternalType = (node: FunctionLike): boolean => {
       try {
-        const services = ESLintUtils.getParserServices(context, true);
-        if (!services.program) return false;
-
-        const checker = services.program.getTypeChecker();
-        const tsNode = services.esTreeNodeToTSNodeMap.get(node);
-        if (!tsNode) return false;
-
-        if (isContextuallyExternal({ node, tsNode, checker })) return true;
-
-        return classMethodOverridesExternal({ functionNode: node, services, checker });
+        return checkImposedByExternalType(node);
       } catch {
         return false;
       }

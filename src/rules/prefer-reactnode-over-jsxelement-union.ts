@@ -1,13 +1,17 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
+import { hasNamedImport } from "../utils/ast.utils.js";
+
+const isJsxElementQualifiedName = (typeName: TSESTree.TSQualifiedName): boolean =>
+  typeName.left.type === "Identifier" && typeName.left.name === "JSX" && typeName.right.name === "Element";
 
 const isJsxElementOrReactElementType = (node: TSESTree.TypeNode): boolean => {
   if (node.type !== "TSTypeReference") return false;
   const typeName = node.typeName;
 
   if (typeName.type === "TSQualifiedName") {
-    return typeName.left.type === "Identifier" && typeName.left.name === "JSX" && typeName.right.name === "Element";
+    return isJsxElementQualifiedName(typeName);
   }
 
   return typeName.type === "Identifier" && ["ReactElement", "JSX.Element"].includes(typeName.name);
@@ -16,18 +20,8 @@ const isJsxElementOrReactElementType = (node: TSESTree.TypeNode): boolean => {
 const isNullOrUndefinedKeyword = (node: TSESTree.TypeNode): boolean =>
   ["TSNullKeyword", "TSUndefinedKeyword"].includes(node.type);
 
-const hasReactNodeImported = (program: TSESTree.Program): boolean =>
-  program.body.some(
-    (statement) =>
-      statement.type === "ImportDeclaration" &&
-      statement.source.value === "react" &&
-      statement.specifiers.some(
-        (specifier) =>
-          specifier.type === "ImportSpecifier" &&
-          specifier.imported.type === "Identifier" &&
-          specifier.imported.name === "ReactNode"
-      )
-  );
+const isNullableElementUnion = (node: TSESTree.TSUnionType): boolean =>
+  node.types.some(isJsxElementOrReactElementType) && node.types.some(isNullOrUndefinedKeyword);
 
 export default createRule({
   name: "prefer-reactnode-over-jsxelement-union",
@@ -46,11 +40,9 @@ export default createRule({
   create(context) {
     return {
       TSUnionType(node) {
-        const hasElementType = node.types.some(isJsxElementOrReactElementType);
-        const hasNullish = node.types.some(isNullOrUndefinedKeyword);
-        if (!hasElementType || !hasNullish) return;
+        if (!isNullableElementUnion(node)) return;
 
-        const canAutofix = hasReactNodeImported(context.sourceCode.ast);
+        const canAutofix = hasNamedImport({ program: context.sourceCode.ast, source: "react", name: "ReactNode" });
 
         context.report({
           node,

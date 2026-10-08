@@ -1,10 +1,10 @@
 import { isBlank } from "@lichens-innovation/ts-common";
 import type { TSESTree } from "@typescript-eslint/utils";
 
-import { functionReturnsJsx } from "../ast-utils.js";
 import { createRule } from "../create-rule.js";
-
-type FunctionLike = TSESTree.ArrowFunctionExpression | TSESTree.FunctionExpression | TSESTree.FunctionDeclaration;
+import { isInlineFunction, type FunctionLike } from "../utils/ast.utils.js";
+import { isTsxFile } from "../utils/file.utils.js";
+import { functionReturnsJsx, isHookName } from "../utils/react.utils.js";
 
 interface ComponentDecl {
   node: TSESTree.Node;
@@ -27,21 +27,17 @@ interface CollectFromVariableDeclarationArgs {
   declaration: TSESTree.VariableDeclaration;
 }
 
+interface CollectFromDeclarationArgs {
+  found: ComponentDecl[];
+  declaration: TSESTree.Node;
+}
+
 interface CollectFromExportDefaultArgs {
   found: ComponentDecl[];
   statement: TSESTree.ExportDefaultDeclaration;
 }
 
-const isTsxFile = (filename: string): boolean => filename.replaceAll("\\", "/").endsWith(".tsx");
-
-const isHookName = (name: string): boolean => /^use[A-Z]/.test(name);
-
 const isComponentName = (name: string): boolean => /^[A-Z]/.test(name) && !isHookName(name);
-
-const getFunctionLike = (init?: TSESTree.Expression | null): FunctionLike | null => {
-  if (init?.type === "ArrowFunctionExpression" || init?.type === "FunctionExpression") return init;
-  return null;
-};
 
 const tryAddComponent = ({ found, node, name }: TryAddComponentArgs): void => {
   if (isBlank(name) || !isComponentName(name)) return;
@@ -55,9 +51,8 @@ const collectFromFunctionDeclaration = ({ found, node }: CollectFromFunctionDecl
 
 const collectFromVariableDeclaration = ({ found, declaration }: CollectFromVariableDeclarationArgs): void => {
   for (const declarator of declaration.declarations) {
-    if (declarator.id.type !== "Identifier") continue;
-    const functionLike = getFunctionLike(declarator.init);
-    if (functionLike) tryAddComponent({ found, node: functionLike, name: declarator.id.name });
+    if (declarator.id.type !== "Identifier" || !isInlineFunction(declarator.init)) continue;
+    tryAddComponent({ found, node: declarator.init, name: declarator.id.name });
   }
 };
 
@@ -67,40 +62,37 @@ const collectFromExportDefault = ({ found, statement }: CollectFromExportDefault
     tryAddComponent({ found, node: declaration, name: declaration.id?.name ?? "default export" });
     return;
   }
-  if (declaration.type === "ArrowFunctionExpression" || declaration.type === "FunctionExpression") {
+  if (isInlineFunction(declaration)) {
     tryAddComponent({ found, node: declaration, name: "default export" });
   }
+};
+
+const collectFromDeclaration = ({ found, declaration }: CollectFromDeclarationArgs): void => {
+  if (declaration.type === "FunctionDeclaration") {
+    collectFromFunctionDeclaration({ found, node: declaration });
+    return;
+  }
+  if (declaration.type === "VariableDeclaration") {
+    collectFromVariableDeclaration({ found, declaration });
+  }
+};
+
+const unwrapNamedExport = (statement: TSESTree.ProgramStatement): TSESTree.Node | null => {
+  if (statement.type !== "ExportNamedDeclaration") return statement;
+  return statement.declaration;
 };
 
 const collectModuleLevelComponents = (programBody: readonly TSESTree.ProgramStatement[]): ComponentDecl[] => {
   const found: ComponentDecl[] = [];
 
   for (const statement of programBody) {
-    if (statement.type === "FunctionDeclaration") {
-      collectFromFunctionDeclaration({ found, node: statement });
-      continue;
-    }
-
-    if (statement.type === "VariableDeclaration") {
-      collectFromVariableDeclaration({ found, declaration: statement });
-      continue;
-    }
-
     if (statement.type === "ExportDefaultDeclaration") {
       collectFromExportDefault({ found, statement });
       continue;
     }
 
-    if (statement.type !== "ExportNamedDeclaration" || !statement.declaration) continue;
-
-    if (statement.declaration.type === "FunctionDeclaration") {
-      collectFromFunctionDeclaration({ found, node: statement.declaration });
-      continue;
-    }
-
-    if (statement.declaration.type === "VariableDeclaration") {
-      collectFromVariableDeclaration({ found, declaration: statement.declaration });
-    }
+    const declaration = unwrapNamedExport(statement);
+    if (declaration) collectFromDeclaration({ found, declaration });
   }
 
   return found;
@@ -120,21 +112,23 @@ export default createRule({
   },
   defaultOptions: [],
   create(context) {
+    const reportExtraComponents = ([primary, ...extras]: ComponentDecl[]): void => {
+      if (!primary) return;
+
+      for (const { node, name } of extras) {
+        context.report({
+          node,
+          messageId: "extraComponent",
+          data: { existing: primary.name, name },
+        });
+      }
+    };
+
     return {
       "Program:exit"(program: TSESTree.Program) {
         if (!isTsxFile(context.filename)) return;
 
-        const components = collectModuleLevelComponents(program.body);
-        if (components.length <= 1) return;
-
-        const [primary, ...extras] = components;
-        for (const { node, name } of extras) {
-          context.report({
-            node,
-            messageId: "extraComponent",
-            data: { existing: primary.name, name },
-          });
-        }
+        reportExtraComponents(collectModuleLevelComponents(program.body));
       },
     };
   },

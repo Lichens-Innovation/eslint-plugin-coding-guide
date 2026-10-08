@@ -1,8 +1,14 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
+import { isNullOrUndefined } from "../utils/ast.utils.js";
 
 const HOOK_NAMES = new Set(["useState", "useRef"]);
+
+const isTargetHookCall = (
+  node: TSESTree.CallExpression
+): node is TSESTree.CallExpression & { callee: TSESTree.Identifier } =>
+  node.callee.type === "Identifier" && HOOK_NAMES.has(node.callee.name);
 
 const hasTypeArguments = (node: TSESTree.CallExpression): boolean => {
   const typeArgs = node.typeArguments;
@@ -10,9 +16,8 @@ const hasTypeArguments = (node: TSESTree.CallExpression): boolean => {
 };
 
 const hasUninferableInitialValue = (node: TSESTree.CallExpression): boolean => {
-  if (node.arguments.length === 0) return true;
   const [arg] = node.arguments;
-  return (arg.type === "Literal" && arg.value === null) || (arg.type === "Identifier" && arg.name === "undefined");
+  return !arg || isNullOrUndefined(arg);
 };
 
 export default createRule({
@@ -31,7 +36,7 @@ export default createRule({
   create(context) {
     return {
       CallExpression(node) {
-        if (node.callee.type !== "Identifier" || !HOOK_NAMES.has(node.callee.name)) return;
+        if (!isTargetHookCall(node)) return;
         if (hasTypeArguments(node)) return;
         if (!hasUninferableInitialValue(node)) return;
 

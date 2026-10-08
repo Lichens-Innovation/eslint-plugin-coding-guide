@@ -4,14 +4,21 @@ import { createRule } from "../create-rule.js";
 
 const CHAINABLE_METHODS = new Set(["filter", "sort", "map", "reduce"]);
 
+const getChainableCallee = (node: TSESTree.CallExpression): TSESTree.MemberExpression | null => {
+  const { callee } = node;
+  if (callee.type !== "MemberExpression" || callee.computed) return null;
+  if (callee.property.type !== "Identifier" || !CHAINABLE_METHODS.has(callee.property.name)) return null;
+
+  return callee;
+};
+
 const countChainedArrayCalls = (node: TSESTree.Expression): number => {
   let count = 0;
   let current: TSESTree.Expression = node;
 
   while (current.type === "CallExpression") {
-    const callee = current.callee;
-    if (callee.type !== "MemberExpression" || callee.computed) break;
-    if (callee.property.type !== "Identifier" || !CHAINABLE_METHODS.has(callee.property.name)) break;
+    const callee = getChainableCallee(current);
+    if (!callee) break;
 
     count += 1;
     if (callee.object.type === "Super") break;

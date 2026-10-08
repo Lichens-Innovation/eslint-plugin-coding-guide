@@ -1,12 +1,24 @@
-import type { TSESTree } from "@typescript-eslint/utils";
+import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
 
-const isUndefinedKeyword = (typeNode: TSESTree.TypeNode): boolean => typeNode.type === "TSUndefinedKeyword";
-
 type OptionalTarget = TSESTree.TSPropertySignature | TSESTree.PropertyDefinition | TSESTree.Identifier;
 
-/** Resolve the parameter node that owns `optional`/`?`, walking through a TSParameterProperty wrapper. */
+interface BuildFixArgs {
+  node: TSESTree.TSUnionType;
+  replacementText: string;
+  alreadyOptional: boolean;
+}
+
+const isUndefinedKeyword = (typeNode: TSESTree.TypeNode): boolean => typeNode.type === "TSUndefinedKeyword";
+
+const isFunctionParam = (paramNode: TSESTree.Node): boolean => {
+  const container = paramNode.parent;
+  if (!container || !("params" in container) || !Array.isArray(container.params)) return false;
+
+  return (container.params as TSESTree.Node[]).includes(paramNode);
+};
+
 const getParamOptionalTarget = (
   annotated: TSESTree.Identifier | TSESTree.ObjectPattern | TSESTree.ArrayPattern
 ): TSESTree.Identifier | null => {
@@ -15,17 +27,9 @@ const getParamOptionalTarget = (
   if (parent.type === "AssignmentPattern") return null; // default value already implies optional
 
   const paramNode = parent.type === "TSParameterProperty" ? parent : annotated;
-  const container = paramNode.parent;
-  if (
-    container &&
-    "params" in container &&
-    Array.isArray(container.params) &&
-    (container.params as TSESTree.Node[]).includes(paramNode) &&
-    annotated.type === "Identifier"
-  ) {
-    return annotated;
-  }
-  return null;
+  if (!isFunctionParam(paramNode) || annotated.type !== "Identifier") return null;
+
+  return annotated;
 };
 
 const getOptionalTarget = (unionNode: TSESTree.TSUnionType): OptionalTarget | null => {
@@ -43,6 +47,17 @@ const getOptionalTarget = (unionNode: TSESTree.TSUnionType): OptionalTarget | nu
   }
   return null;
 };
+
+const describeTarget = (target: OptionalTarget): string =>
+  ["TSPropertySignature", "PropertyDefinition"].includes(target.type) ? "this property" : "this parameter";
+
+const buildFix =
+  ({ node, replacementText, alreadyOptional }: BuildFixArgs): TSESLint.ReportFixFunction =>
+  (fixer) => {
+    const fixes = [fixer.replaceText(node, replacementText)];
+    if (!alreadyOptional && node.parent) fixes.push(fixer.insertTextBefore(node.parent, "?"));
+    return fixes;
+  };
 
 export default createRule({
   name: "no-explicit-undefined-optional",
@@ -71,22 +86,16 @@ export default createRule({
         if (!target) return;
 
         const alreadyOptional = target.optional === true;
-        const what = ["TSPropertySignature", "PropertyDefinition"].includes(target.type)
-          ? "this property"
-          : "this parameter";
+        const fix =
+          remaining.length === 1
+            ? buildFix({ node, replacementText: sourceCode.getText(remaining[0]), alreadyOptional })
+            : null;
 
         context.report({
           node,
           messageId: alreadyOptional ? "redundantUndefined" : "useOptionalModifier",
-          data: { what },
-          fix:
-            remaining.length === 1
-              ? (fixer) => {
-                  const fixes = [fixer.replaceText(node, sourceCode.getText(remaining[0]))];
-                  if (!alreadyOptional && node.parent) fixes.push(fixer.insertTextBefore(node.parent, "?"));
-                  return fixes;
-                }
-              : null,
+          data: { what: describeTarget(target) },
+          fix,
         });
       },
     };

@@ -2,6 +2,7 @@ import type { TSESTree } from "@typescript-eslint/utils";
 import type { Type } from "typescript";
 
 import { createRule } from "../create-rule.js";
+import { isNegation } from "../utils/ast.utils.js";
 
 // Mirrors the ts.TypeFlags bit values we need — avoids a runtime dependency on
 // the "typescript" package just for these constants.
@@ -49,11 +50,20 @@ const getMemberObject = ({ node, propertyName }: GetMemberObjectArgs): TSESTree.
   return node.object;
 };
 
-/** `x.trim()` → `x` */
 const getTrimSubject = (node: TSESTree.Node): TSESTree.Expression | undefined => {
   const inner = node.type === "ChainExpression" ? node.expression : node;
   if (inner.type !== "CallExpression" || inner.arguments.length > 0) return undefined;
   return getMemberObject({ node: inner.callee, propertyName: "trim" });
+};
+
+interface NegationParts {
+  operand: TSESTree.Expression;
+  isDoubleNegation: boolean;
+}
+
+const getNegationParts = (node: TSESTree.UnaryExpression): NegationParts => {
+  if (isNegation(node.argument)) return { operand: node.argument.argument, isDoubleNegation: true };
+  return { operand: node.argument, isDoubleNegation: false };
 };
 
 export default createRule({
@@ -113,15 +123,13 @@ export default createRule({
       other: TSESTree.Node;
     }
 
-    /** Resolves the string being checked by `<side> === ""` or `<side>.length === 0`. */
-    const getBlankCheckSubject = ({ side, other }: ComparisonSides): TSESTree.Node | undefined => {
-      if (isEmptyStringLiteral(other)) {
-        const trimSubject = getTrimSubject(side);
-        if (trimSubject) return trimSubject;
-        return isMaybeStringExpression(side) ? side : undefined;
-      }
-      if (!isZeroLiteral(other)) return undefined;
+    const getEmptyStringComparisonSubject = (side: TSESTree.Node): TSESTree.Node | undefined => {
+      const trimSubject = getTrimSubject(side);
+      if (trimSubject) return trimSubject;
+      return isMaybeStringExpression(side) ? side : undefined;
+    };
 
+    const getZeroLengthComparisonSubject = (side: TSESTree.Node): TSESTree.Node | undefined => {
       const lengthObject = getMemberObject({ node: side, propertyName: "length" });
       if (!lengthObject) return undefined;
       const trimSubject = getTrimSubject(lengthObject);
@@ -129,7 +137,16 @@ export default createRule({
       return isStringExpression(lengthObject) ? lengthObject : undefined;
     };
 
-    /** Resolves the string being tested for truthiness by `!<node>`. */
+    const getBlankCheckSubject = ({ side, other }: ComparisonSides): TSESTree.Node | undefined => {
+      if (isEmptyStringLiteral(other)) return getEmptyStringComparisonSubject(side);
+      if (isZeroLiteral(other)) return getZeroLengthComparisonSubject(side);
+      return undefined;
+    };
+
+    const getComparisonSubject = (node: TSESTree.BinaryExpression): TSESTree.Node | undefined =>
+      getBlankCheckSubject({ side: node.left, other: node.right }) ??
+      getBlankCheckSubject({ side: node.right, other: node.left });
+
     const getFalsyCheckSubject = (node: TSESTree.Node): TSESTree.Node | undefined => {
       const trimSubject = getTrimSubject(node);
       if (trimSubject) return trimSubject;
@@ -142,21 +159,16 @@ export default createRule({
         if (!isEquality && !INEQUALITY_OPERATORS.includes(node.operator)) return;
         if (node.left.type === "PrivateIdentifier") return;
 
-        const subject =
-          getBlankCheckSubject({ side: node.left, other: node.right }) ??
-          getBlankCheckSubject({ side: node.right, other: node.left });
+        const subject = getComparisonSubject(node);
         if (!subject) return;
 
         report({ node, messageId: isEquality ? "preferIsBlank" : "preferIsNotBlank", subject });
       },
 
       UnaryExpression(node) {
-        if (node.operator !== "!") return;
-        if (node.parent.type === "UnaryExpression" && node.parent.operator === "!") return;
+        if (!isNegation(node) || isNegation(node.parent)) return;
 
-        const isDoubleNegation = node.argument.type === "UnaryExpression" && node.argument.operator === "!";
-        const operand =
-          isDoubleNegation && node.argument.type === "UnaryExpression" ? node.argument.argument : node.argument;
+        const { operand, isDoubleNegation } = getNegationParts(node);
         const subject = getFalsyCheckSubject(operand);
         if (!subject) return;
 

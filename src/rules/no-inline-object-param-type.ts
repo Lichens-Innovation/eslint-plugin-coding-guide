@@ -1,8 +1,7 @@
 import { AST_NODE_TYPES, type TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
-
-type FunctionLike = TSESTree.FunctionDeclaration | TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression;
+import { type FunctionLike } from "../utils/ast.utils.js";
 
 const MEMBER_TYPES = new Set<string>([
   AST_NODE_TYPES.TSPropertySignature,
@@ -17,6 +16,9 @@ const countMemberAncestors = (node: TSESTree.Node): number => {
   }
   return count;
 };
+
+const getParamTypeAnnotation = (param: TSESTree.Parameter): TSESTree.TypeNode | undefined =>
+  "typeAnnotation" in param ? param.typeAnnotation?.typeAnnotation : undefined;
 
 export default createRule({
   name: "no-inline-object-param-type",
@@ -35,7 +37,7 @@ export default createRule({
   defaultOptions: [],
   create(context) {
     const checkParam = (param: TSESTree.Parameter): void => {
-      const typeAnnotation = "typeAnnotation" in param ? param.typeAnnotation?.typeAnnotation : undefined;
+      const typeAnnotation = getParamTypeAnnotation(param);
       if (typeAnnotation?.type === "TSTypeLiteral") {
         context.report({ node: typeAnnotation, messageId: "extractInterface" });
       }

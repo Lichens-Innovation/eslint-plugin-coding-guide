@@ -1,4 +1,9 @@
+import type { TSESTree } from "@typescript-eslint/utils";
+
 import { createRule } from "../create-rule.js";
+
+const isChildrenProperty = (member: TSESTree.TypeElement): boolean =>
+  member.type === "TSPropertySignature" && member.key.type === "Identifier" && member.key.name === "children";
 
 export default createRule({
   name: "prefer-props-with-children",
@@ -17,10 +22,7 @@ export default createRule({
   create(context) {
     return {
       TSInterfaceDeclaration(node) {
-        const childrenProperty = node.body.body.find(
-          (member) =>
-            member.type === "TSPropertySignature" && member.key.type === "Identifier" && member.key.name === "children"
-        );
+        const childrenProperty = node.body.body.find(isChildrenProperty);
         if (!childrenProperty) return;
 
         context.report({

@@ -1,17 +1,25 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
+import { flattenLogicalChain } from "../utils/ast.utils.js";
 
-const flattenOrChain = (node: TSESTree.Expression): TSESTree.Expression[] => {
-  if (node.type === "LogicalExpression" && node.operator === "||") {
-    return [...flattenOrChain(node.left), ...flattenOrChain(node.right)];
-  }
-
-  return [node];
-};
+const isOrExpression = (node: TSESTree.Node): node is TSESTree.LogicalExpression =>
+  node.type === "LogicalExpression" && node.operator === "||";
 
 const isEqualityToLiteral = (node: TSESTree.Expression): node is TSESTree.BinaryExpression =>
   node.type === "BinaryExpression" && ["===", "=="].includes(node.operator) && node.right.type === "Literal";
+
+const getLiteralComparisons = (node: TSESTree.LogicalExpression): TSESTree.BinaryExpression[] | undefined => {
+  const operands = flattenLogicalChain({ node, operator: "||" });
+  if (operands.length < 2 || !operands.every(isEqualityToLiteral)) return undefined;
+
+  return operands as TSESTree.BinaryExpression[];
+};
+
+interface IncludesTextArgs {
+  comparisons: TSESTree.BinaryExpression[];
+  lhsText: string;
+}
 
 export default createRule({
   name: "prefer-includes-over-or-chain",
@@ -30,27 +38,31 @@ export default createRule({
   create(context) {
     const sourceCode = context.sourceCode;
 
+    const getSharedLhsText = (comparisons: TSESTree.BinaryExpression[]): string | undefined => {
+      const lhsTexts = comparisons.map((comparison) => sourceCode.getText(comparison.left));
+      const [firstLhs] = lhsTexts;
+      return lhsTexts.every((text) => text === firstLhs) ? firstLhs : undefined;
+    };
+
+    const toIncludesText = ({ comparisons, lhsText }: IncludesTextArgs): string => {
+      const literalsText = comparisons.map((comparison) => sourceCode.getText(comparison.right)).join(", ");
+      return `[${literalsText}].includes(${lhsText})`;
+    };
+
     return {
       LogicalExpression(node) {
-        if (node.operator !== "||") return;
-        if (node.parent.type === "LogicalExpression" && node.parent.operator === "||") return; // only report the outermost chain
+        if (!isOrExpression(node) || isOrExpression(node.parent)) return;
 
-        const operands = flattenOrChain(node);
-        if (operands.length < 2) return;
-        if (!operands.every(isEqualityToLiteral)) return;
+        const comparisons = getLiteralComparisons(node);
+        if (!comparisons) return;
 
-        const binaryOperands = operands as TSESTree.BinaryExpression[];
-        const lhsTexts = binaryOperands.map((operand) => sourceCode.getText(operand.left));
-        const [firstLhs] = lhsTexts;
-        if (!lhsTexts.every((text) => text === firstLhs)) return;
+        const lhsText = getSharedLhsText(comparisons);
+        if (lhsText === undefined) return;
 
         context.report({
           node,
           messageId: "preferIncludes",
-          fix: (fixer) => {
-            const literalsText = binaryOperands.map((operand) => sourceCode.getText(operand.right)).join(", ");
-            return fixer.replaceText(node, `[${literalsText}].includes(${firstLhs})`);
-          },
+          fix: (fixer) => fixer.replaceText(node, toIncludesText({ comparisons, lhsText })),
         });
       },
     };

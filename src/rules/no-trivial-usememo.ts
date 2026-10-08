@@ -1,11 +1,16 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 
-import { getChildNodes } from "../ast-utils.js";
 import { createRule } from "../create-rule.js";
+import { getChildNodes, isIdentifierCall } from "../utils/ast.utils.js";
 
 const containsCallExpression = (node: TSESTree.Node): boolean => {
   if (["CallExpression", "NewExpression"].includes(node.type)) return true;
   return getChildNodes(node).some((child) => containsCallExpression(child));
+};
+
+const getReturnedExpression = (callback: TSESTree.ArrowFunctionExpression): TSESTree.Node | null | undefined => {
+  if (callback.body.type !== "BlockStatement") return callback.body;
+  return callback.body.body.find((statement) => statement.type === "ReturnStatement")?.argument;
 };
 
 export default createRule({
@@ -24,18 +29,13 @@ export default createRule({
   create(context) {
     return {
       CallExpression(node) {
-        if (node.callee.type !== "Identifier" || node.callee.name !== "useMemo") return;
+        if (!isIdentifierCall({ node, name: "useMemo" })) return;
 
         const [callback] = node.arguments;
         if (!callback || callback.type !== "ArrowFunctionExpression") return;
 
-        const bodyToCheck =
-          callback.body.type === "BlockStatement"
-            ? callback.body.body.find((statement) => statement.type === "ReturnStatement")?.argument
-            : callback.body;
-
-        if (!bodyToCheck) return;
-        if (containsCallExpression(bodyToCheck)) return;
+        const returned = getReturnedExpression(callback);
+        if (!returned || containsCallExpression(returned)) return;
 
         context.report({ node, messageId: "unnecessaryMemo" });
       },

@@ -1,22 +1,7 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
-
-/** Strip type-only wrappers so `((await x) as T).y` and `(await x)!.y` are seen as `(await x).y`. */
-const unwrapTypeExpression = (node: TSESTree.Node): TSESTree.Node => {
-  let current = node;
-
-  while (
-    current.type === "TSAsExpression" ||
-    current.type === "TSNonNullExpression" ||
-    current.type === "TSSatisfiesExpression" ||
-    current.type === "TSTypeAssertion"
-  ) {
-    current = current.expression;
-  }
-
-  return current;
-};
+import { unwrapTypeExpression } from "../utils/ast.utils.js";
 
 export default createRule({
   name: "no-inline-await-access",
@@ -33,7 +18,7 @@ export default createRule({
   },
   defaultOptions: [],
   create(context) {
-    const check = (target: TSESTree.Node): void => {
+    const reportInlineAwait = (target: TSESTree.Node): void => {
       const unwrapped = unwrapTypeExpression(target);
       if (unwrapped.type !== "AwaitExpression") return;
 
@@ -42,10 +27,10 @@ export default createRule({
 
     return {
       MemberExpression(node) {
-        check(node.object);
+        reportInlineAwait(node.object);
       },
       CallExpression(node) {
-        check(node.callee);
+        reportInlineAwait(node.callee);
       },
     };
   },

@@ -30,6 +30,14 @@ const DEFAULT_ANTONYMS: Record<string, string> = {
 
 const INEQUALITY_TO_EQUALITY: Record<string, string> = { "!==": "===", "!=": "==" };
 
+const isNegatedInequality = (node: TSESTree.Expression): node is TSESTree.BinaryExpression =>
+  node.type === "BinaryExpression" && node.operator in INEQUALITY_TO_EQUALITY;
+
+interface ReportNegatedInequalityArgs {
+  node: TSESTree.UnaryExpression;
+  inequality: TSESTree.BinaryExpression;
+}
+
 export interface Options {
   antonyms?: Record<string, string>;
 }
@@ -45,10 +53,8 @@ const getReferencedName = (node: TSESTree.Expression): string | undefined => {
   return undefined;
 };
 
-/** `isNotBlank` → `isBlank`, `hasNoItems` → `hasItems` */
 const toPositiveName = (name: string): string => name.replace(NEGATIVE_NAME_PATTERN, "$1");
 
-/** Identifier declaring a binding, function, class member or interface member. */
 const getDeclaredIdentifier = (node: TSESTree.Node): TSESTree.Identifier | undefined => {
   switch (node.type) {
     case "VariableDeclarator":
@@ -100,24 +106,31 @@ export default createRule<[Options], "negatedNegativeName" | "negatedInequality"
       return antonym ? `${prefix}${antonym}${rest}` : undefined;
     };
 
+    const reportNegatedInequality = ({ node, inequality }: ReportNegatedInequalityArgs): void => {
+      context.report({
+        node,
+        messageId: "negatedInequality",
+        data: { operator: inequality.operator, equality: INEQUALITY_TO_EQUALITY[inequality.operator] },
+      });
+    };
+
+    const reportNegatedNegativeName = (node: TSESTree.UnaryExpression): void => {
+      const name = getReferencedName(node.argument);
+      if (isBlank(name) || !NEGATIVE_NAME_PATTERN.test(name)) return;
+
+      context.report({ node, messageId: "negatedNegativeName", data: { name, positive: toPositiveName(name) } });
+    };
+
     return {
       UnaryExpression(node) {
         if (node.operator !== "!") return;
-        const argument = node.argument;
 
-        if (argument.type === "BinaryExpression" && INEQUALITY_TO_EQUALITY[argument.operator]) {
-          context.report({
-            node,
-            messageId: "negatedInequality",
-            data: { operator: argument.operator, equality: INEQUALITY_TO_EQUALITY[argument.operator] },
-          });
+        if (isNegatedInequality(node.argument)) {
+          reportNegatedInequality({ node, inequality: node.argument });
           return;
         }
 
-        const name = getReferencedName(argument);
-        if (isBlank(name) || !NEGATIVE_NAME_PATTERN.test(name)) return;
-
-        context.report({ node, messageId: "negatedNegativeName", data: { name, positive: toPositiveName(name) } });
+        reportNegatedNegativeName(node);
       },
 
       "VariableDeclarator, FunctionDeclaration, PropertyDefinition, MethodDefinition, TSPropertySignature, TSMethodSignature"(

@@ -21,6 +21,11 @@ interface BuildReplacementsArgs {
   rows: Row[];
 }
 
+interface GetLineIndentArgs {
+  sourceCode: Readonly<TSESLint.SourceCode>;
+  node: TSESTree.Node;
+}
+
 interface Replacement {
   range: TSESTree.Range;
   text: string;
@@ -56,6 +61,16 @@ const toRow = (element: TSESTree.ArrayExpression["elements"][number]): Row | nul
   if (element?.type !== "ArrayExpression") return null;
   const cells = element.elements.filter(isCell);
   return cells.length === element.elements.length ? cells : null;
+};
+
+const isTupleTable = (argument?: TSESTree.CallExpressionArgument): argument is TSESTree.ArrayExpression =>
+  argument?.type === "ArrayExpression" &&
+  argument.elements.length > 0 &&
+  argument.elements.every((element) => element?.type === "ArrayExpression");
+
+const getRows = (table: TSESTree.ArrayExpression): Row[] | null => {
+  const rows = table.elements.map(toRow).filter((row) => row !== null);
+  return rows.length === table.elements.length ? rows : null;
 };
 
 const renameTitle = ({ title, names }: RenameTitleArgs): string | null => {
@@ -98,6 +113,9 @@ const getColumnNames = (params: TSESTree.Parameter[]): string[] | null => {
   return names.length > 0 && names.length === params.length ? names : null;
 };
 
+const getLineIndent = ({ sourceCode, node }: GetLineIndentArgs): string =>
+  /^\s*/.exec(sourceCode.lines[node.loc.start.line - 1] ?? "")?.[0] ?? "";
+
 const buildReplacements = ({ sourceCode, node, rows }: BuildReplacementsArgs): Replacement[] | null => {
   const parts = getEachCallParts(node);
   if (!parts) return null;
@@ -111,7 +129,7 @@ const buildReplacements = ({ sourceCode, node, rows }: BuildReplacementsArgs): R
   const newTitle = renameTitle({ title: title.value, names });
   if (newTitle === null) return null;
 
-  const indent = /^\s*/.exec(sourceCode.lines[node.loc.start.line - 1] ?? "")?.[0] ?? "";
+  const indent = getLineIndent({ sourceCode, node });
   const quote = title.raw[0] ?? '"';
   const table = buildTable({ sourceCode, names, rows, indent });
 
@@ -145,12 +163,10 @@ export default createRule({
         if (!isEachCallee(node.callee)) return;
 
         const [table] = node.arguments;
-        if (table?.type !== "ArrayExpression" || table.elements.length === 0) return;
-        if (!table.elements.every((element) => element?.type === "ArrayExpression")) return;
+        if (!isTupleTable(table)) return;
 
-        const rows = table.elements.map(toRow).filter((row) => row !== null);
-        const replacements =
-          rows.length === table.elements.length ? buildReplacements({ sourceCode, node, rows }) : null;
+        const rows = getRows(table);
+        const replacements = rows ? buildReplacements({ sourceCode, node, rows }) : null;
 
         context.report({
           node: table,

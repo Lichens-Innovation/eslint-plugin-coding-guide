@@ -7,6 +7,7 @@ const SECTION_RE = /^\s*(arrange|act|assert)\b(?:\s*(?:&|and|\+|\/)\s*(act|asser
 const REQUIRED_SECTIONS = ["act", "assert"];
 
 type TestCallback = TSESTree.ArrowFunctionExpression | TSESTree.FunctionExpression;
+type BlockBodyCallback = TestCallback & { body: TSESTree.BlockStatement };
 
 const getRootIdentifierName = (node: TSESTree.Node): string | null => {
   if (node.type === "Identifier") return node.name;
@@ -32,6 +33,21 @@ const toSections = (comment: TSESTree.Comment): string[] => {
   return [match[1], match[2]].flatMap((section) => (section ? [section.toLowerCase()] : []));
 };
 
+const isTestCall = (node: TSESTree.CallExpression): boolean =>
+  TEST_FUNCTIONS.has(getRootIdentifierName(node.callee) ?? "");
+
+const getBlockBodyCallback = (node: TSESTree.CallExpression): BlockBodyCallback | null => {
+  const callback = node.arguments.find(isTestCallback);
+  if (callback?.body.type !== "BlockStatement") return null;
+
+  return callback as BlockBodyCallback;
+};
+
+const hasDistinctPhases = (statements: TSESTree.Statement[]): boolean =>
+  statements.length >= 2 && !statements.every(isExpectStatement);
+
+const formatMissingSections = (missing: string[]): string => missing.map((section) => `// ${section}`).join(", ");
+
 export default createRule({
   name: "require-aaa-comments",
   meta: {
@@ -49,24 +65,27 @@ export default createRule({
   create(context) {
     const { sourceCode } = context;
 
+    const findMissingSections = (body: TSESTree.BlockStatement): string[] => {
+      const sections = new Set(sourceCode.getCommentsInside(body).flatMap(toSections));
+
+      return REQUIRED_SECTIONS.filter((section) => !sections.has(section));
+    };
+
     return {
       CallExpression(node) {
-        if (!TEST_FUNCTIONS.has(getRootIdentifierName(node.callee) ?? "")) return;
+        if (!isTestCall(node)) return;
 
-        const callback = node.arguments.find(isTestCallback);
-        if (callback?.body.type !== "BlockStatement") return;
+        const callback = getBlockBodyCallback(node);
+        if (!callback) return;
+        if (!hasDistinctPhases(callback.body.body)) return;
 
-        const statements = callback.body.body;
-        if (statements.length < 2 || statements.every(isExpectStatement)) return;
-
-        const sections = new Set(sourceCode.getCommentsInside(callback.body).flatMap(toSections));
-        const missing = REQUIRED_SECTIONS.filter((section) => !sections.has(section));
+        const missing = findMissingSections(callback.body);
         if (missing.length === 0) return;
 
         context.report({
           node: callback,
           messageId: "missingSections",
-          data: { missing: missing.map((section) => `// ${section}`).join(", ") },
+          data: { missing: formatMissingSections(missing) },
         });
       },
     };

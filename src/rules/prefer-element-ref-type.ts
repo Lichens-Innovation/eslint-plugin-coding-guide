@@ -2,6 +2,7 @@ import { isBlank } from "@lichens-innovation/ts-common";
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
+import { hasNamedImport, isIdentifierCall } from "../utils/ast.utils.js";
 
 const TAG_BY_HTML_ELEMENT: Record<string, string> = {
   HTMLDivElement: "div",
@@ -24,18 +25,20 @@ const TAG_BY_HTML_ELEMENT: Record<string, string> = {
   HTMLLabelElement: "label",
 };
 
-const hasElementRefImported = (program: TSESTree.Program): boolean =>
-  program.body.some(
-    (statement) =>
-      statement.type === "ImportDeclaration" &&
-      statement.source.value === "react" &&
-      statement.specifiers.some(
-        (specifier) =>
-          specifier.type === "ImportSpecifier" &&
-          specifier.imported.type === "Identifier" &&
-          specifier.imported.name === "ElementRef"
-      )
-  );
+interface HtmlElementTypeArg {
+  typeArg: TSESTree.TSTypeReference;
+  typeName: string;
+}
+
+const getHtmlElementTypeArg = (node: TSESTree.CallExpression): HtmlElementTypeArg | null => {
+  const typeArg = node.typeArguments?.params[0];
+  if (!typeArg || typeArg.type !== "TSTypeReference" || typeArg.typeName.type !== "Identifier") return null;
+
+  const typeName = typeArg.typeName.name;
+  if (!/^HTML\w*Element$/.test(typeName)) return null;
+
+  return { typeArg, typeName };
+};
 
 export default createRule({
   name: "prefer-element-ref-type",
@@ -54,21 +57,19 @@ export default createRule({
   create(context) {
     return {
       CallExpression(node) {
-        if (node.callee.type !== "Identifier" || node.callee.name !== "useRef") return;
+        if (!isIdentifierCall({ node, name: "useRef" })) return;
 
-        const typeArg = node.typeArguments?.params[0];
-        if (!typeArg || typeArg.type !== "TSTypeReference" || typeArg.typeName.type !== "Identifier") return;
+        const htmlElementTypeArg = getHtmlElementTypeArg(node);
+        if (!htmlElementTypeArg) return;
 
-        const typeName = typeArg.typeName.name;
-        if (!/^HTML\w*Element$/.test(typeName)) return;
-
+        const { typeArg, typeName } = htmlElementTypeArg;
         const tag = TAG_BY_HTML_ELEMENT[typeName];
         if (isBlank(tag)) {
           context.report({ node: typeArg, messageId: "preferElementRef", data: { typeName, tag: "?" } });
           return;
         }
 
-        const canAutofix = hasElementRefImported(context.sourceCode.ast);
+        const canAutofix = hasNamedImport({ program: context.sourceCode.ast, source: "react", name: "ElementRef" });
 
         context.report({
           node: typeArg,

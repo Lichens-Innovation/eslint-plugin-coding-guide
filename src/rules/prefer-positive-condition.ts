@@ -1,4 +1,12 @@
+import type { TSESTree } from "@typescript-eslint/utils";
+
 import { createRule } from "../create-rule.js";
+import { isNegation } from "../utils/ast.utils.js";
+
+interface BuildPositiveTernaryArgs {
+  node: TSESTree.ConditionalExpression;
+  test: TSESTree.UnaryExpression;
+}
 
 export default createRule({
   name: "prefer-positive-condition",
@@ -17,20 +25,23 @@ export default createRule({
   create(context) {
     const sourceCode = context.sourceCode;
 
+    const buildPositiveTernary = ({ node, test }: BuildPositiveTernaryArgs): string => {
+      const innerTest = sourceCode.getText(test.argument);
+      const consequentText = sourceCode.getText(node.consequent);
+      const alternateText = sourceCode.getText(node.alternate);
+
+      return `${innerTest} ? ${alternateText} : ${consequentText}`;
+    };
+
     return {
       ConditionalExpression(node) {
         const test = node.test;
-        if (test.type !== "UnaryExpression" || test.operator !== "!" || !test.prefix) return;
+        if (!isNegation(test)) return;
 
         context.report({
           node,
           messageId: "preferPositive",
-          fix: (fixer) => {
-            const innerTest = sourceCode.getText(test.argument);
-            const consequentText = sourceCode.getText(node.consequent);
-            const alternateText = sourceCode.getText(node.alternate);
-            return fixer.replaceText(node, `${innerTest} ? ${alternateText} : ${consequentText}`);
-          },
+          fix: (fixer) => fixer.replaceText(node, buildPositiveTernary({ node, test })),
         });
       },
     };

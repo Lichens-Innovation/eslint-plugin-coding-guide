@@ -1,4 +1,15 @@
+import type { TSESTree } from "@typescript-eslint/utils";
+
 import { createRule } from "../create-rule.js";
+
+const isBindMember = (callee: TSESTree.Expression): boolean =>
+  callee.type === "MemberExpression" &&
+  !callee.computed &&
+  callee.property.type === "Identifier" &&
+  callee.property.name === "bind";
+
+const isBindThisCall = (node: TSESTree.CallExpression): boolean =>
+  isBindMember(node.callee) && node.arguments[0]?.type === "ThisExpression";
 
 export default createRule({
   name: "no-bind-this",
@@ -16,16 +27,9 @@ export default createRule({
   create(context) {
     return {
       CallExpression(node) {
-        const { callee, arguments: args } = node;
-        const isBindCall =
-          callee.type === "MemberExpression" &&
-          !callee.computed &&
-          callee.property.type === "Identifier" &&
-          callee.property.name === "bind";
+        if (!isBindThisCall(node)) return;
 
-        if (isBindCall && args[0]?.type === "ThisExpression") {
-          context.report({ node, messageId: "bindThis" });
-        }
+        context.report({ node, messageId: "bindThis" });
       },
     };
   },

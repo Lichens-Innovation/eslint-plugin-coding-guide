@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
+import { isTsxFile } from "../utils/file.utils.js";
 
 const ANTD_MODULE = "antd";
 const FLEX_CLASS = "flex";
@@ -11,18 +12,26 @@ const DEPENDENCY_FIELDS = ["dependencies", "devDependencies", "peerDependencies"
 
 const usesAntdByDirectory = new Map<string, boolean>();
 
-const isTsxFile = (filename: string): boolean => filename.replaceAll("\\", "/").endsWith(".tsx");
+const declaresAntd = (manifest: Record<string, unknown>): boolean =>
+  DEPENDENCY_FIELDS.some((field) => {
+    const dependencies = manifest[field];
+    return typeof dependencies === "object" && dependencies !== null && ANTD_MODULE in dependencies;
+  });
 
 const readDeclaresAntd = (packageJsonPath: string): boolean => {
   try {
-    const manifest = JSON.parse(readFileSync(packageJsonPath, "utf8")) as Record<string, unknown>;
-    return DEPENDENCY_FIELDS.some((field) => {
-      const dependencies = manifest[field];
-      return typeof dependencies === "object" && dependencies !== null && ANTD_MODULE in dependencies;
-    });
+    return declaresAntd(JSON.parse(readFileSync(packageJsonPath, "utf8")) as Record<string, unknown>);
   } catch {
     return false;
   }
+};
+
+const resolveIsAntdProject = (directory: string): boolean => {
+  const packageJsonPath = join(directory, "package.json");
+  if (existsSync(packageJsonPath)) return readDeclaresAntd(packageJsonPath);
+
+  const parent = dirname(directory);
+  return parent !== directory && isAntdProject(parent);
 };
 
 /** True when the nearest package.json above `directory` declares `antd`. */
@@ -30,16 +39,9 @@ const isAntdProject = (directory: string): boolean => {
   const cached = usesAntdByDirectory.get(directory);
   if (cached !== undefined) return cached;
 
-  const packageJsonPath = join(directory, "package.json");
-  const parent = dirname(directory);
-  let result = false;
-  if (existsSync(packageJsonPath)) {
-    result = readDeclaresAntd(packageJsonPath);
-  } else if (parent !== directory) {
-    result = isAntdProject(parent);
-  }
-
+  const result = resolveIsAntdProject(directory);
   usesAntdByDirectory.set(directory, result);
+
   return result;
 };
 
@@ -68,6 +70,9 @@ const collectClassStrings = (node: TSESTree.Node): string[] => {
 const hasFlexClass = (attribute: TSESTree.JSXAttribute): boolean =>
   attribute.value !== null &&
   collectClassStrings(attribute.value).some((classes) => classes.split(/\s+/).includes(FLEX_CLASS));
+
+const isDivElement = (node: TSESTree.JSXOpeningElement): boolean =>
+  node.name.type === "JSXIdentifier" && node.name.name === "div";
 
 const findClassNameAttribute = (node: TSESTree.JSXOpeningElement): TSESTree.JSXAttribute | undefined =>
   node.attributes.find(
@@ -103,7 +108,7 @@ export default createRule({
         }
       },
       JSXOpeningElement(node) {
-        if (node.name.type !== "JSXIdentifier" || node.name.name !== "div") return;
+        if (!isDivElement(node)) return;
 
         const classNameAttribute = findClassNameAttribute(node);
         if (!classNameAttribute || !hasFlexClass(classNameAttribute)) return;
