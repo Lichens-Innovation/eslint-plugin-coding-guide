@@ -12,7 +12,7 @@ const COMPANION_FILE_PATTERN = /\.(test|spec|stories)\.[^.]+$|\.d\.[cm]?ts$|^ind
 
 const DEFAULT_MAX = 20;
 
-interface Options {
+export interface Options {
   max?: number;
   ignoreFolders?: string[];
 }
