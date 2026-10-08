@@ -34,6 +34,7 @@ import preferReactnodeOverJsxelementUnion from "./prefer-reactnode-over-jsxeleme
 import preferRoleQueryOverTestid from "./prefer-role-query-over-testid.js";
 import preferSomeOverFindCheck from "./prefer-some-over-find-check.js";
 import preferStateUpdaterForm from "./prefer-state-updater-form.js";
+import requireAaaComments from "./require-aaa-comments.js";
 import requireEffectCleanup from "./require-effect-cleanup.js";
 import requireFallbackOnDeepChain from "./require-fallback-on-deep-chain.js";
 import requireNumericEnumInitializer from "./require-numeric-enum-initializer.js";
@@ -77,6 +78,7 @@ export const rules = {
   "prefer-role-query-over-testid": preferRoleQueryOverTestid,
   "prefer-some-over-find-check": preferSomeOverFindCheck,
   "prefer-state-updater-form": preferStateUpdaterForm,
+  "require-aaa-comments": requireAaaComments,
   "require-effect-cleanup": requireEffectCleanup,
   "require-fallback-on-deep-chain": requireFallbackOnDeepChain,
   "require-numeric-enum-initializer": requireNumericEnumInitializer,

@@ -83,6 +83,7 @@ All rules live under the `coding-guide/` namespace and are enabled by `configs.r
 | [`prefer-role-query-over-testid`](docs/rules/prefer-role-query-over-testid.md)                   | Prefer Testing Library's `*ByRole` queries over `*ByTestId`                                        |
 | [`prefer-some-over-find-check`](docs/rules/prefer-some-over-find-check.md)                       | Prefer `Array#some` over comparing `Array#find`'s result to undefined                              |
 | [`prefer-state-updater-form`](docs/rules/prefer-state-updater-form.md)                           | Prefer the updater-function form of a state setter when the new value depends on the current one   |
+| [`require-aaa-comments`](docs/rules/require-aaa-comments.md)                                     | Require `// arrange`, `// act` and `// assert` comments in multi-statement tests                   |
 | [`require-effect-cleanup`](docs/rules/require-effect-cleanup.md)                                 | Require a cleanup return from a `useEffect` that registers a timer/listener/subscription           |
 | [`require-fallback-on-deep-chain`](docs/rules/require-fallback-on-deep-chain.md)                 | Require a `??` fallback on a deep optional chain                                                   |
 | [`require-numeric-enum-initializer`](docs/rules/require-numeric-enum-initializer.md)             | Require an explicit initializer on every enum member                                               |
