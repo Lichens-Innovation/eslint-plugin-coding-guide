@@ -60,6 +60,7 @@ All rules live under the `coding-guide/` namespace and are enabled by `configs.r
 | [`no-inline-object-param-type`](docs/rules/no-inline-object-param-type.md)                       | Disallow inline object type literals on function parameters                                      |
 | [`no-inline-render-function`](docs/rules/no-inline-render-function.md)                           | Disallow local render* helpers that return JSX, and using them from JSX                          |
 | [`no-jsx-in-variable`](docs/rules/no-jsx-in-variable.md)                                         | Disallow storing a JSX element/fragment in a variable                                            |
+| [`no-mobx-reaction`](docs/rules/no-mobx-reaction.md)                                             | Disallow MobX `reaction` — implicit side effects are hard to debug and trace                     |
 | [`no-nested-try`](docs/rules/no-nested-try.md)                                                   | Disallow nesting a try statement inside another try block or catch handler                       |
 | [`no-non-hook-use-prefix`](docs/rules/no-non-hook-use-prefix.md)                                 | Disallow a use* named function whose body calls no hook                                          |
 | [`no-render-fn-in-usecallback`](docs/rules/no-render-fn-in-usecallback.md)                       | Disallow useCallback wrapping a JSX-returning or render*-named function                          |

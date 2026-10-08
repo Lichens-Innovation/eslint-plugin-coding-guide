@@ -11,6 +11,7 @@ import noInlineGuardChainHandler from "./no-inline-guard-chain-handler.js";
 import noInlineObjectParamType from "./no-inline-object-param-type.js";
 import noInlineRenderFunction from "./no-inline-render-function.js";
 import noJsxInVariable from "./no-jsx-in-variable.js";
+import noMobxReaction from "./no-mobx-reaction.js";
 import noNestedTry from "./no-nested-try.js";
 import noNonHookUsePrefix from "./no-non-hook-use-prefix.js";
 import noRenderFnInUsecallback from "./no-render-fn-in-usecallback.js";
@@ -50,6 +51,7 @@ export const rules = {
   "no-inline-object-param-type": noInlineObjectParamType,
   "no-inline-render-function": noInlineRenderFunction,
   "no-jsx-in-variable": noJsxInVariable,
+  "no-mobx-reaction": noMobxReaction,
   "no-nested-try": noNestedTry,
   "no-non-hook-use-prefix": noNonHookUsePrefix,
   "no-render-fn-in-usecallback": noRenderFnInUsecallback,
