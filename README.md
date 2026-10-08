@@ -69,6 +69,7 @@ All rules live under the `coding-guide/` namespace and are enabled by `configs.r
 | [`no-trivial-usememo`](docs/rules/no-trivial-usememo.md)                                         | Disallow useMemo whose body has no function call (likely unnecessary memoization)                  |
 | [`no-unguarded-json-parse`](docs/rules/no-unguarded-json-parse.md)                               | Require `JSON.parse(...)` to be wrapped in a try/catch                                             |
 | [`one-component-per-tsx-file`](docs/rules/one-component-per-tsx-file.md)                         | Allow at most one React component per `.tsx` file                                                  |
+| [`prefer-antd-flex`](docs/rules/prefer-antd-flex.md)                                             | Prefer Ant Design `<Flex>` over a `<div className="flex …">` in Ant Design apps                    |
 | [`prefer-blank-helpers`](docs/rules/prefer-blank-helpers.md)                                     | Prefer `isBlank`/`isNotBlank` over empty-string, falsy and `                                       |     | ` checks on strings |
 | [`prefer-each-table`](docs/rules/prefer-each-table.md)                                           | Prefer the tagged-template table form of `.each` over an array of tuples                           |
 | [`prefer-element-ref-type`](docs/rules/prefer-element-ref-type.md)                               | Prefer `useRef<ComponentRef<"tag">>(null)` over a raw `HTMLXxxElement` type argument               |

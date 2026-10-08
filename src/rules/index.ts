@@ -20,6 +20,7 @@ import noTestsInDunderFolder from "./no-tests-in-dunder-folder.js";
 import noTrivialUsememo from "./no-trivial-usememo.js";
 import noUnguardedJsonParse from "./no-unguarded-json-parse.js";
 import oneComponentPerTsxFile from "./one-component-per-tsx-file.js";
+import preferAntdFlex from "./prefer-antd-flex.js";
 import preferBlankHelpers from "./prefer-blank-helpers.js";
 import preferEachTable from "./prefer-each-table.js";
 import preferElementRefType from "./prefer-element-ref-type.js";
@@ -62,6 +63,7 @@ export const rules = {
   "no-trivial-usememo": noTrivialUsememo,
   "no-unguarded-json-parse": noUnguardedJsonParse,
   "one-component-per-tsx-file": oneComponentPerTsxFile,
+  "prefer-antd-flex": preferAntdFlex,
   "prefer-blank-helpers": preferBlankHelpers,
   "prefer-each-table": preferEachTable,
   "prefer-element-ref-type": preferElementRefType,
