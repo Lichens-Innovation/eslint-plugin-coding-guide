@@ -2,6 +2,7 @@ import { AST_NODE_TYPES, type TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
 import { type FunctionLike } from "../utils/ast.utils.js";
+import { isTestFile } from "../utils/file.utils.js";
 
 const MEMBER_TYPES = new Set<string>([
   AST_NODE_TYPES.TSPropertySignature,
@@ -15,6 +16,19 @@ const countMemberAncestors = (node: TSESTree.Node): number => {
     if (MEMBER_TYPES.has(current.type)) count += 1;
   }
   return count;
+};
+
+const isCastType = (node: TSESTree.Node): boolean => {
+  const parent = node.parent;
+  if (parent?.type !== AST_NODE_TYPES.TSAsExpression && parent?.type !== AST_NODE_TYPES.TSTypeAssertion) return false;
+  return parent.typeAnnotation === node;
+};
+
+const isInCastType = (node: TSESTree.Node): boolean => {
+  for (let current: TSESTree.Node | undefined = node; current; current = current.parent) {
+    if (isCastType(current)) return true;
+  }
+  return false;
 };
 
 const getParamTypeAnnotation = (param: TSESTree.Parameter): TSESTree.TypeNode | undefined =>
@@ -36,6 +50,8 @@ export default createRule({
   },
   defaultOptions: [],
   create(context) {
+    const isTest = isTestFile(context.filename);
+
     const checkParam = (param: TSESTree.Parameter): void => {
       const typeAnnotation = getParamTypeAnnotation(param);
       if (typeAnnotation?.type === "TSTypeLiteral") {
@@ -49,6 +65,7 @@ export default createRule({
 
     // Only the outermost nested literal is reported; extracting it surfaces deeper ones.
     const checkNestedLiteral = (node: TSESTree.TSTypeLiteral): void => {
+      if (isTest && isInCastType(node)) return;
       if (countMemberAncestors(node) === 1) {
         context.report({ node, messageId: "extractNestedInterface" });
       }

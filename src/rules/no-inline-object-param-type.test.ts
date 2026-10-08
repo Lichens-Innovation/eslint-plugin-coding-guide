@@ -8,8 +8,23 @@ ruleTester.run("no-inline-object-param-type", rule, {
     { code: "interface ViewBox { x?: number; } interface Props { viewBox?: ViewBox; }" },
     { code: "type Props = { value: string };" },
     { code: "interface Props { items: string[]; onChange: (value: string) => void; }" },
+    {
+      code: "const axis = option.xAxis as { axisLabel: { formatter: (timestamp: number) => string } };",
+      filename: "chart.utils.test.ts",
+    },
+    { code: "const axis = <{ axisLabel: { show: boolean } }>option.xAxis;", filename: "chart.utils.spec.ts" },
   ],
   invalid: [
+    {
+      code: "const axis = option.xAxis as { axisLabel: { formatter: (timestamp: number) => string } };",
+      filename: "chart.utils.ts",
+      errors: [{ messageId: "extractNestedInterface" }],
+    },
+    {
+      code: "const f = ({ a }: { a: { b: string } }) => a;",
+      filename: "chart.utils.test.ts",
+      errors: [{ messageId: "extractInterface" }, { messageId: "extractNestedInterface" }],
+    },
     {
       code: "function f({ a, b }: { a: string; b: number }) {}",
       errors: [{ messageId: "extractInterface" }],

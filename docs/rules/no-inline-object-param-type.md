@@ -7,6 +7,8 @@ Disallows inline object-literal types where a named type should be extracted:
 
 Extract a named `interface` and reference it instead. Only the outermost nested literal is reported; deeper ones surface once it is extracted.
 
+In test files (`*.test.*`, `*.spec.*`), object types inside an `as` or `<T>` cast are not reported: a one-off cast to reach into a value under test doesn't need a named type.
+
 ## ❌ Incorrect
 
 ```ts

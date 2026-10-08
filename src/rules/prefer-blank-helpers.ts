@@ -7,11 +7,20 @@ import { createTypeResolver, isNullableStringType } from "../utils/type.utils.js
 const EQUALITY_OPERATORS = ["===", "=="];
 const INEQUALITY_OPERATORS = ["!==", "!="];
 
-type MessageId = "preferIsBlank" | "preferIsNotBlank" | "preferBlankFallback";
+type MessageId = "preferIsBlank" | "preferIsNotBlank" | "preferBlankFallback" | "preferBlankFallbackExtract";
 
 const isEmptyStringLiteral = (node: TSESTree.Node): boolean => node.type === "Literal" && node.value === "";
 
 const isZeroLiteral = (node: TSESTree.Node): boolean => node.type === "Literal" && node.value === 0;
+
+/** Identifiers and property chains (`a.b?.c`), which can be repeated in `isBlank(x) ? fallback : x` without side effects. */
+const isSimpleReference = (node: TSESTree.Node): boolean => {
+  if (node.type === "ChainExpression") return isSimpleReference(node.expression);
+  if (node.type === "Identifier" || node.type === "ThisExpression") return true;
+  if (node.type !== "MemberExpression") return false;
+  const isStaticProperty = !node.computed || node.property.type === "Literal";
+  return isStaticProperty && isSimpleReference(node.object);
+};
 
 interface GetMemberObjectArgs {
   node: TSESTree.Node;
@@ -56,6 +65,8 @@ export default createRule({
         "Manual non-empty-string check — use `isNotBlank({{expr}})` (handles null, undefined, empty and whitespace-only strings).",
       preferBlankFallback:
         "`||` fallback on a string — use `isBlank({{expr}}) ? fallback : {{expr}}` to make the blank-string intent explicit.",
+      preferBlankFallbackExtract:
+        "`||` fallback on a string — store `{{expr}}` in a local variable, then use `isBlank(variable) ? fallback : variable` so it is not evaluated twice.",
     },
   },
   defaultOptions: [],
@@ -145,7 +156,8 @@ export default createRule({
         const subject = getFalsyCheckSubject(node.left);
         if (!subject) return;
 
-        report({ node, messageId: "preferBlankFallback", subject });
+        const messageId = isSimpleReference(subject) ? "preferBlankFallback" : "preferBlankFallbackExtract";
+        report({ node, messageId, subject });
       },
     };
   },

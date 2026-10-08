@@ -59,5 +59,13 @@ typedRuleTester.run("prefer-blank-helpers", rule, {
       code: `declare const newVersion: string; declare const currentVersion: string; resolve(newVersion || currentVersion);`,
       errors: [{ messageId: "preferBlankFallback", data: { expr: "newVersion" } }],
     },
+    {
+      code: `declare const marker: { label?: string }; resolve(marker?.label || "none");`,
+      errors: [{ messageId: "preferBlankFallback", data: { expr: "marker?.label" } }],
+    },
+    {
+      code: `declare const format: (date: Date) => string; declare const date: Date; resolve(format(date) || "—");`,
+      errors: [{ messageId: "preferBlankFallbackExtract", data: { expr: "format(date)" } }],
+    },
   ],
 });
