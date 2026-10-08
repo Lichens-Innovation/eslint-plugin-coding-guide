@@ -7,6 +7,7 @@ import noExplicitUndefinedOptional from "./no-explicit-undefined-optional.js";
 import noExportedMutableState from "./no-exported-mutable-state.js";
 import noHookReturningJsx from "./no-hook-returning-jsx.js";
 import noInlineArrayChainInJsx from "./no-inline-array-chain-in-jsx.js";
+import noInlineAwaitAccess from "./no-inline-await-access.js";
 import noInlineCurriedHandler from "./no-inline-curried-handler.js";
 import noInlineGuardChainHandler from "./no-inline-guard-chain-handler.js";
 import noInlineObjectParamType from "./no-inline-object-param-type.js";
@@ -51,6 +52,7 @@ export const rules = {
   "no-exported-mutable-state": noExportedMutableState,
   "no-hook-returning-jsx": noHookReturningJsx,
   "no-inline-array-chain-in-jsx": noInlineArrayChainInJsx,
+  "no-inline-await-access": noInlineAwaitAccess,
   "no-inline-curried-handler": noInlineCurriedHandler,
   "no-inline-guard-chain-handler": noInlineGuardChainHandler,
   "no-inline-object-param-type": noInlineObjectParamType,

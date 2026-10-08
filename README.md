@@ -56,6 +56,7 @@ All rules live under the `coding-guide/` namespace and are enabled by `configs.r
 | [`no-exported-mutable-state`](docs/rules/no-exported-mutable-state.md)                           | Disallow exporting a mutable (let/var) module-scoped binding                                       |
 | [`no-hook-returning-jsx`](docs/rules/no-hook-returning-jsx.md)                                   | Disallow a use* hook returning JSX                                                                 |
 | [`no-inline-array-chain-in-jsx`](docs/rules/no-inline-array-chain-in-jsx.md)                     | Disallow chained array methods directly inside a JSX expression                                    |
+| [`no-inline-await-access`](docs/rules/no-inline-await-access.md)                                 | Disallow operating directly on an awaited value, as in `(await promise).property`                  |
 | [`no-inline-curried-handler`](docs/rules/no-inline-curried-handler.md)                           | Disallow a curried handler factory declared as a local component variable                          |
 | [`no-inline-guard-chain-handler`](docs/rules/no-inline-guard-chain-handler.md)                   | Disallow a JSX prop arrow whose body is a long `&&` guard chain                                    |
 | [`no-inline-object-param-type`](docs/rules/no-inline-object-param-type.md)                       | Disallow inline object type literals on function parameters and nested in interface/type members   |
