@@ -29,5 +29,10 @@ ruleTester.run("filename-convention-by-export-shape", rule, {
       filename: "utils.ts",
       errors: [{ messageId: "genericBasename", data: { basename: "utils", example: "<domain>.utils.ts" } }],
     },
+    {
+      code: "export const a = 1; export const b = 2;",
+      filename: "src/features/orders/types.tsx",
+      errors: [{ messageId: "genericBasename", data: { basename: "types", example: "<domain>.types.tsx" } }],
+    },
   ],
 });

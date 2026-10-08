@@ -13,10 +13,13 @@ const KEBAB_SUFFIX_BY_NAME_SUFFIX = [
   { nameSuffix: "Provider", kebabSuffix: "-provider" },
 ];
 
-const getBasename = (filename: string): string => {
-  const withoutDir = toPosixPath(filename).split("/").pop() ?? filename;
-  return withoutDir.replace(/\.(tsx|ts|jsx|js)$/, "");
-};
+const SOURCE_EXTENSION_PATTERN = /\.(tsx|ts|jsx|js)$/;
+
+const getFileName = (filename: string): string => toPosixPath(filename).split("/").pop() ?? filename;
+
+const getBasename = (filename: string): string => getFileName(filename).replace(SOURCE_EXTENSION_PATTERN, "");
+
+const getExtension = (filename: string): string => SOURCE_EXTENSION_PATTERN.exec(getFileName(filename))?.[0] ?? ".ts";
 
 interface PrimaryExport {
   name: string;
@@ -61,6 +64,10 @@ interface FilenameCheckArgs {
   basename: string;
 }
 
+interface GenericBasenameCheckArgs extends FilenameCheckArgs {
+  extension: string;
+}
+
 interface ExportFilenameCheckArgs extends FilenameCheckArgs {
   name: string;
 }
@@ -74,8 +81,7 @@ export default createRule({
     },
     schema: [],
     messages: {
-      genericBasename:
-        "'{{basename}}' is a generic root-level filename — prefix it with its domain (e.g. '{{example}}').",
+      genericBasename: "'{{basename}}' is a generic filename — prefix it with its domain (e.g. '{{example}}').",
       hookFilename: "This file's sole export '{{name}}' is a hook — rename the file to start with 'use-'.",
       suffixFilename:
         "This file's sole export '{{name}}' ends in '{{nameSuffix}}' — rename the file to end with '{{kebabSuffix}}'.",
@@ -83,13 +89,13 @@ export default createRule({
   },
   defaultOptions: [],
   create(context) {
-    const checkGenericBasename = ({ program, basename }: FilenameCheckArgs): void => {
+    const checkGenericBasename = ({ program, basename, extension }: GenericBasenameCheckArgs): void => {
       if (!GENERIC_BASENAMES.has(basename.toLowerCase())) return;
 
       context.report({
         node: program,
         messageId: "genericBasename",
-        data: { basename, example: `<domain>.${basename}.ts` },
+        data: { basename, example: `<domain>.${basename}${extension}` },
       });
     };
 
@@ -122,7 +128,7 @@ export default createRule({
       "Program:exit"(program: TSESTree.Program) {
         const basename = getBasename(context.filename);
 
-        checkGenericBasename({ program, basename });
+        checkGenericBasename({ program, basename, extension: getExtension(context.filename) });
         checkSoleExportFilename({ program, basename });
       },
     };

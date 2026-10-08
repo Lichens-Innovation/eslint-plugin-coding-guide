@@ -4,6 +4,8 @@ import type { TSESTree } from "@typescript-eslint/utils";
 import { createRule } from "../create-rule.js";
 import { hasNamedImport, isIdentifierCall } from "../utils/ast.utils.js";
 
+// `HTMLHeadingElement` is shared by h1–h6 and `HTMLTableCellElement` by td/th, so they are left
+// unmapped: the report asks for the tag instead of guessing one.
 const TAG_BY_HTML_ELEMENT: Record<string, string> = {
   HTMLDivElement: "div",
   HTMLSpanElement: "span",
@@ -21,7 +23,6 @@ const TAG_BY_HTML_ELEMENT: Record<string, string> = {
   HTMLAudioElement: "audio",
   HTMLImageElement: "img",
   HTMLParagraphElement: "p",
-  HTMLHeadingElement: "h1",
   HTMLLabelElement: "label",
 };
 
@@ -45,12 +46,14 @@ export default createRule({
   meta: {
     type: "suggestion",
     docs: {
-      description: 'Prefer useRef<ElementRef<"tag">>(null) over a raw HTMLXxxElement type argument',
+      description: 'Prefer useRef<ComponentRef<"tag">>(null) over a raw HTMLXxxElement type argument',
     },
     fixable: "code",
     schema: [],
     messages: {
-      preferElementRef: 'Use `ElementRef<"{{tag}}">` instead of `{{typeName}}` for this ref.',
+      preferElementRef: 'Use `ComponentRef<"{{tag}}">` (from "react") instead of `{{typeName}}` for this ref.',
+      preferElementRefUnknownTag:
+        'Use `ComponentRef<"tag">` (from "react") with the JSX tag this ref is attached to, instead of `{{typeName}}`.',
     },
   },
   defaultOptions: [],
@@ -65,17 +68,17 @@ export default createRule({
         const { typeArg, typeName } = htmlElementTypeArg;
         const tag = TAG_BY_HTML_ELEMENT[typeName];
         if (isBlank(tag)) {
-          context.report({ node: typeArg, messageId: "preferElementRef", data: { typeName, tag: "?" } });
+          context.report({ node: typeArg, messageId: "preferElementRefUnknownTag", data: { typeName } });
           return;
         }
 
-        const canAutofix = hasNamedImport({ program: context.sourceCode.ast, source: "react", name: "ElementRef" });
+        const canAutofix = hasNamedImport({ program: context.sourceCode.ast, source: "react", name: "ComponentRef" });
 
         context.report({
           node: typeArg,
           messageId: "preferElementRef",
           data: { typeName, tag },
-          fix: canAutofix ? (fixer) => fixer.replaceText(typeArg, `ElementRef<"${tag}">`) : undefined,
+          fix: canAutofix ? (fixer) => fixer.replaceText(typeArg, `ComponentRef<"${tag}">`) : undefined,
         });
       },
     };

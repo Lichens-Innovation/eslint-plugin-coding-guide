@@ -1,39 +1,13 @@
 import type { TSESTree } from "@typescript-eslint/utils";
-import type { Type } from "typescript";
 
 import { createRule } from "../create-rule.js";
 import { isNegation } from "../utils/ast.utils.js";
-
-// Mirrors the ts.TypeFlags bit values we need — avoids a runtime dependency on
-// the "typescript" package just for these constants.
-const TYPE_FLAG_UNDEFINED = 4;
-const TYPE_FLAG_NULL = 8;
-const TYPE_FLAG_VOID = 16;
-const TYPE_FLAG_STRING = 32;
-const TYPE_FLAG_STRING_LITERAL = 1024;
-const TYPE_FLAG_TEMPLATE_LITERAL = 4194304;
-const TYPE_FLAG_STRING_MAPPING = 8388608;
-const STRING_FLAGS =
-  TYPE_FLAG_STRING | TYPE_FLAG_STRING_LITERAL | TYPE_FLAG_TEMPLATE_LITERAL | TYPE_FLAG_STRING_MAPPING;
-const NULLISH_FLAGS = TYPE_FLAG_UNDEFINED | TYPE_FLAG_NULL | TYPE_FLAG_VOID;
+import { createTypeResolver, isNullableStringType } from "../utils/type.utils.js";
 
 const EQUALITY_OPERATORS = ["===", "=="];
 const INEQUALITY_OPERATORS = ["!==", "!="];
 
 type MessageId = "preferIsBlank" | "preferIsNotBlank" | "preferBlankFallback";
-
-const isStringType = (type: Type): boolean => (type.flags & STRING_FLAGS) !== 0;
-
-/** True for `string`, string literals, and their unions with null/undefined (at least one string member). */
-const isNullableStringType = (type?: Type): boolean => {
-  if (!type) return false;
-  if (isStringType(type)) return true;
-  if (!type.isUnion()) return false;
-  return (
-    type.types.some(isStringType) &&
-    type.types.every((member) => isStringType(member) || !!(member.flags & NULLISH_FLAGS))
-  );
-};
 
 const isEmptyStringLiteral = (node: TSESTree.Node): boolean => node.type === "Literal" && node.value === "";
 
@@ -88,17 +62,7 @@ export default createRule({
   create(context) {
     const sourceCode = context.sourceCode;
 
-    const getTypeAtNode = (node: TSESTree.Node): Type | undefined => {
-      try {
-        const services = sourceCode.parserServices;
-        if (!services?.program || !services.esTreeNodeToTSNodeMap) return undefined;
-        const tsNode = services.esTreeNodeToTSNodeMap.get(node);
-        if (!tsNode) return undefined;
-        return services.program.getTypeChecker().getTypeAtLocation(tsNode);
-      } catch {
-        return undefined;
-      }
-    };
+    const getTypeAtNode = createTypeResolver(sourceCode);
 
     const isStringExpression = (node: TSESTree.Node): boolean => isNullableStringType(getTypeAtNode(node));
 
