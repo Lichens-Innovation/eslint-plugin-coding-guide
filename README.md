@@ -16,6 +16,7 @@ ESLint flat-config plugin enforcing Lichens Innovation TypeScript/React coding s
   - [All Scripts](#all-scripts)
   - [Contributions](#contributions)
   - [Library semantic versioning](#library-semantic-versioning)
+  - [References](#references)
   - [License](#license)
 
 ## Installation
@@ -123,6 +124,10 @@ Versioning is automated by [semantic-release](https://semantic-release.gitbook.i
 | `feat!:` / `BREAKING CHANGE:` | `MAJOR` — incompatible API change               |
 
 Follow [Semantic Versioning](https://semver.org/#summary) (`MAJOR.MINOR.PATCH`) when writing commit messages — the tooling takes care of the rest. Commitlint requires a **scope** (e.g. `feat(rules): add no-foo-bar`).
+
+## References
+
+- [Habit-hooks](https://github.com/habit-hooks/habit-hooks)
 
 ## License
 
