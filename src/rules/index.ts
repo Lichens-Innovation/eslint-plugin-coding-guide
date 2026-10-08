@@ -1,6 +1,7 @@
 import filenameConventionByExportShape from "./filename-convention-by-export-shape.js";
 import hoistStaticComponentConstants from "./hoist-static-component-constants.js";
 import maxParamsProject from "./max-params-project.js";
+import noBindThis from "./no-bind-this.js";
 import noExplicitUndefinedOptional from "./no-explicit-undefined-optional.js";
 import noExportedMutableState from "./no-exported-mutable-state.js";
 import noHookReturningJsx from "./no-hook-returning-jsx.js";
@@ -37,6 +38,7 @@ export const rules = {
   "filename-convention-by-export-shape": filenameConventionByExportShape,
   "hoist-static-component-constants": hoistStaticComponentConstants,
   "max-params-project": maxParamsProject,
+  "no-bind-this": noBindThis,
   "no-explicit-undefined-optional": noExplicitUndefinedOptional,
   "no-exported-mutable-state": noExportedMutableState,
   "no-hook-returning-jsx": noHookReturningJsx,

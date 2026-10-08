@@ -49,6 +49,7 @@ All rules live under the `coding-guide/` namespace and are enabled by `configs.r
 | [`filename-convention-by-export-shape`](docs/rules/filename-convention-by-export-shape.md)       | Enforce filename conventions against a file's exported shape                                     |
 | [`hoist-static-component-constants`](docs/rules/hoist-static-component-constants.md)             | Disallow a static array/object literal declared inside a component body                          |
 | [`max-params-project`](docs/rules/max-params-project.md)                                         | Enforce a maximum number of parameters on project-owned functions                                |
+| [`no-bind-this`](docs/rules/no-bind-this.md)                                                     | Disallow `.bind(this)` — use an arrow function instead                                           |
 | [`no-explicit-undefined-optional`](docs/rules/no-explicit-undefined-optional.md)                 | Use `?` instead of an explicit `\| undefined` on params/properties that support it               |
 | [`no-exported-mutable-state`](docs/rules/no-exported-mutable-state.md)                           | Disallow exporting a mutable (let/var) module-scoped binding                                     |
 | [`no-hook-returning-jsx`](docs/rules/no-hook-returning-jsx.md)                                   | Disallow a use* hook returning JSX                                                               |
