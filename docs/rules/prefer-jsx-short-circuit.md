@@ -33,8 +33,8 @@ function OrdersPanel({ isLoading, error, orders, isMobile, isFilterOpen }) {
     <Panel>
       {isFilterOpen && <OrdersFilter />}
       {orders.length > 0 && <OrdersTable orders={orders} />}
-      {orders.length > 0 && "Export"}
-      {!isMobile && "Last 30 days"}
+      {orders.length > 0 && <>"Export"</>}
+      {!isMobile && <>"Last 30 days"</>}
     </Panel>
   );
 }
