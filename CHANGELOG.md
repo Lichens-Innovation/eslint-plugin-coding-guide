@@ -1,3 +1,72 @@
+# [2.0.0](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v1.1.0...v2.0.0) (2026-10-08)
+
+
+* feat!: rules improvements ([#3](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/issues/3)) ([8405ae5](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/8405ae587548959a076e941568a89f8d4b8b4619))
+
+
+### BREAKING CHANGES
+
+* configs.recommended enables every rule as "error", so the 10
+new rules (max-files-per-folder, no-bind-this, no-double-negation,
+no-inline-await-access, no-mobx-reaction, prefer-antd-flex,
+prefer-blank-helpers, prefer-each-table, prefer-get-error-message,
+require-aaa-comments) now report errors in consuming projects.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* fix(build): externalize node builtins in lib bundle
+
+The lib build replaced node:fs / node:path with empty browser shims, so
+max-files-per-folder and prefer-antd-flex crashed at runtime
+("k.basename is not a function"). Tests run against src and missed it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* docs(md): rule adjustment
+
+* fix(rules): align messages and autofixes with house rules
+
+- prefer-element-ref-type: suggest ComponentRef (ElementRef is deprecated
+  in @types/react); stop mapping HTMLHeadingElement to h1
+- prefer-jsx-short-circuit: string guards ask for isNotBlank(x) instead of
+  !!x, which prefer-blank-helpers rejects
+- no-inline-curried-handler: message no longer pushes stateful factories
+  to *.utils.ts
+- filename-convention-by-export-shape: drop "root-level" wording, keep
+  file extension in suggested name
+- share type helpers via utils/type.utils.ts
+- fix rule doc examples that violated other house rules
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* docs(habit-hooks): sync guides with house rules
+
+Add guides for every house rule missing one, rename ticket-ref to
+todo-ticket-ref, and rewrite existing guides against the rule sources
+so their triggers, fixes and AVOID notes match actual behaviour and
+don't trip other house rules.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* fix(build): export rule option types for declaration emit
+
+max-files-per-folder's Options was not exported, so emitting declarations
+for the rules map failed with TS4023. Re-export it and no-double-negation's
+Options from the entry point, like the other rule option types.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* fix(rules): refine blank fallback and test cast reporting
+
+prefer-blank-helpers: when the left side of a string `||` fallback is not
+a plain reference (e.g. a call), ask to store it in a local first instead
+of suggesting a ternary that evaluates it twice.
+
+no-inline-object-param-type: skip object types inside `as` / `<T>` casts
+in test files.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [1.1.0](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v1.0.4...v1.1.0) (2026-09-13)
 
 
