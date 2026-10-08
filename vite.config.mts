@@ -26,6 +26,8 @@ const externalPackageNames = [
 
 const isExternalPackage = (id: string): boolean => {
   if (id.includes("?")) return false;
+  // Node builtins must stay imports — otherwise the lib build swaps them for empty browser shims.
+  if (id.startsWith("node:")) return true;
   return externalPackageNames.some((pkg) => id === pkg || id.startsWith(`${pkg}/`));
 };
 
