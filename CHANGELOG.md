@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.0.0...v2.1.0) (2026-10-10)
+
+
+### Features
+
+* **no-inline-object-param-type:** flag return types, variables and call type args ([a12f7c4](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/a12f7c4a0f873a57b9f83e05185c4f8bd111b130))
+
 # [2.0.0](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v1.1.0...v2.0.0) (2026-10-08)
 
 
