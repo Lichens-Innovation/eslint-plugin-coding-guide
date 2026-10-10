@@ -18,6 +18,21 @@ const getReactionMemberObjectName = (callee: TSESTree.Expression): string | unde
   return callee.object.type === "Identifier" ? callee.object.name : undefined;
 };
 
+interface IsReactionCalleeArgs {
+  callee: TSESTree.Expression;
+  reactionNames: Set<string>;
+  namespaceNames: Set<string>;
+}
+
+const isReactionCallee = ({ callee, reactionNames, namespaceNames }: IsReactionCalleeArgs): boolean => {
+  if (callee.type === "Identifier") {
+    return reactionNames.has(callee.name);
+  }
+
+  const objectName = getReactionMemberObjectName(callee);
+  return objectName !== undefined && namespaceNames.has(objectName);
+};
+
 export default createRule({
   name: "no-mobx-reaction",
   meta: {
@@ -44,15 +59,6 @@ export default createRule({
       }
     };
 
-    const isReactionCallee = (callee: TSESTree.Expression): boolean => {
-      if (callee.type === "Identifier") {
-        return reactionNames.has(callee.name);
-      }
-
-      const objectName = getReactionMemberObjectName(callee);
-      return objectName !== undefined && namespaceNames.has(objectName);
-    };
-
     return {
       ImportDeclaration(node) {
         if (node.source.value !== MOBX_MODULE) {
@@ -62,7 +68,7 @@ export default createRule({
         node.specifiers.forEach(registerSpecifier);
       },
       CallExpression(node) {
-        if (isReactionCallee(node.callee)) {
+        if (isReactionCallee({ callee: node.callee, reactionNames, namespaceNames })) {
           context.report({ node, messageId: "noReaction" });
         }
       },

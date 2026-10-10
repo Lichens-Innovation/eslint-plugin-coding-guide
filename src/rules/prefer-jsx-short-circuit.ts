@@ -1,4 +1,4 @@
-import type { TSESTree } from "@typescript-eslint/utils";
+import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
 import {
@@ -10,7 +10,7 @@ import {
   isTypeWrapper,
   isUndefinedIdentifier,
 } from "../utils/ast.utils.js";
-import { createTypeResolver, isBooleanishType, isNullableStringType } from "../utils/type.utils.js";
+import { createTypeResolver, isBooleanishType, isNullableStringType, type TypeResolver } from "../utils/type.utils.js";
 
 const TS_COMMON_SOURCE = "@lichens-innovation/ts-common";
 
@@ -73,6 +73,101 @@ const collectGuardLeaves = (node: TSESTree.Expression): TSESTree.Expression[] =>
     .slice(0, -1)
     .filter((leaf) => !isJsxNode(leaf));
 
+type MessageId = "preferShortCircuit" | "requireBooleanGuard" | "requireBlankGuard";
+
+interface RuleState {
+  context: Readonly<TSESLint.RuleContext<MessageId, []>>;
+  sourceCode: Readonly<TSESLint.SourceCode>;
+  getTypeAtNode: TypeResolver;
+  hasIsNotBlankImport: boolean;
+}
+
+interface StateNodeArgs<T extends TSESTree.Node = TSESTree.Expression> {
+  state: RuleState;
+  node: T;
+}
+
+const getTextPreservingParens = ({ state: { sourceCode }, node }: StateNodeArgs<TSESTree.Node>): string => {
+  const tokenBefore = sourceCode.getTokenBefore(node);
+  const tokenAfter = sourceCode.getTokenAfter(node);
+  if (tokenBefore?.value === "(" && tokenAfter?.value === ")") {
+    return sourceCode.text.slice(tokenBefore.range[0], tokenAfter.range[1]);
+  }
+  return sourceCode.getText(node);
+};
+
+// A string guard must become `isNotBlank(x)`, not `!!x` (which `prefer-blank-helpers` rejects);
+// without the import in scope there is no safe text to emit, so the report carries no fix.
+const isStringGuard = ({ state, node }: StateNodeArgs): boolean =>
+  !isLengthAccess(node) && isNullableStringType(state.getTypeAtNode(node));
+
+const needsBooleanCoerce = ({ state, node }: StateNodeArgs): boolean => {
+  if (isSyntacticallyBoolean(node)) return false;
+  if (isLengthAccess(node)) return true;
+
+  const type = state.getTypeAtNode(node);
+  if (type) return !isBooleanishType(type);
+
+  return needsCoerceWithoutType(node);
+};
+
+const coerceText = (args: StateNodeArgs): string | null => {
+  const { state, node } = args;
+  const text = state.sourceCode.getText(node);
+  if (isLengthAccess(node)) return `${text} > 0`;
+  if (isStringGuard(args)) return state.hasIsNotBlankImport ? `isNotBlank(${text})` : null;
+  const inner = unwrap(node);
+  if (["Identifier", "MemberExpression", "ChainExpression"].includes(inner.type)) {
+    return `!!${text}`;
+  }
+  return `!!(${text})`;
+};
+
+const formatBooleanTest = (args: StateNodeArgs): string | null => {
+  const { state, node } = args;
+  if (node.type === "LogicalExpression" && node.operator === "&&") {
+    const left = formatBooleanTest({ state, node: node.left });
+    const right = formatBooleanTest({ state, node: node.right });
+    return left === null || right === null ? null : `${left} && ${right}`;
+  }
+  if (needsBooleanCoerce(args)) return coerceText(args);
+  return state.sourceCode.getText(node);
+};
+
+const checkTernary = ({ state, node }: StateNodeArgs<TSESTree.Node>): void => {
+  if (node.type !== "ConditionalExpression") return;
+  if (!isJsxChildExpression(node)) return;
+  if (!isOptionalJsxTernary(node)) return;
+
+  state.context.report({
+    node,
+    messageId: "preferShortCircuit",
+    fix: (fixer) => {
+      const testText = formatBooleanTest({ state, node: node.test });
+      if (testText === null) return null;
+      const consequentText = getTextPreservingParens({ state, node: node.consequent });
+      return fixer.replaceText(node, `${testText} && ${consequentText}`);
+    },
+  });
+};
+
+const checkShortCircuit = ({ state, node }: StateNodeArgs<TSESTree.Node>): void => {
+  if (node.type !== "LogicalExpression") return;
+  if (!isJsxChildExpression(node)) return;
+
+  for (const leaf of collectGuardLeaves(node)) {
+    if (!needsBooleanCoerce({ state, node: leaf })) continue;
+
+    const replacement = coerceText({ state, node: leaf });
+    state.context.report({
+      node: leaf,
+      messageId: isStringGuard({ state, node: leaf }) ? "requireBlankGuard" : "requireBooleanGuard",
+      data: { expr: state.sourceCode.getText(leaf) },
+      fix: replacement === null ? null : (fixer) => fixer.replaceText(leaf, replacement),
+    });
+  }
+};
+
 export default createRule({
   name: "prefer-jsx-short-circuit",
   meta: {
@@ -93,92 +188,20 @@ export default createRule({
   defaultOptions: [],
   create(context) {
     const sourceCode = context.sourceCode;
-
-    const getTextPreservingParens = (node: TSESTree.Node): string => {
-      const tokenBefore = sourceCode.getTokenBefore(node);
-      const tokenAfter = sourceCode.getTokenAfter(node);
-      if (tokenBefore?.value === "(" && tokenAfter?.value === ")") {
-        return sourceCode.text.slice(tokenBefore.range[0], tokenAfter.range[1]);
-      }
-      return sourceCode.getText(node);
-    };
-
-    const getTypeAtNode = createTypeResolver(sourceCode);
-    const hasIsNotBlankImport = hasNamedImport({
-      program: sourceCode.ast,
-      source: TS_COMMON_SOURCE,
-      name: "isNotBlank",
-    });
-
-    // A string guard must become `isNotBlank(x)`, not `!!x` (which `prefer-blank-helpers` rejects);
-    // without the import in scope there is no safe text to emit, so the report carries no fix.
-    const isStringGuard = (node: TSESTree.Expression): boolean =>
-      !isLengthAccess(node) && isNullableStringType(getTypeAtNode(node));
-
-    const needsBooleanCoerce = (node: TSESTree.Expression): boolean => {
-      if (isSyntacticallyBoolean(node)) return false;
-      if (isLengthAccess(node)) return true;
-
-      const type = getTypeAtNode(node);
-      if (type) return !isBooleanishType(type);
-
-      return needsCoerceWithoutType(node);
-    };
-
-    const coerceText = (node: TSESTree.Expression): string | null => {
-      const text = sourceCode.getText(node);
-      if (isLengthAccess(node)) return `${text} > 0`;
-      if (isStringGuard(node)) return hasIsNotBlankImport ? `isNotBlank(${text})` : null;
-      const inner = unwrap(node);
-      if (["Identifier", "MemberExpression", "ChainExpression"].includes(inner.type)) {
-        return `!!${text}`;
-      }
-      return `!!(${text})`;
-    };
-
-    const formatBooleanTest = (node: TSESTree.Expression): string | null => {
-      if (node.type === "LogicalExpression" && node.operator === "&&") {
-        const left = formatBooleanTest(node.left);
-        const right = formatBooleanTest(node.right);
-        return left === null || right === null ? null : `${left} && ${right}`;
-      }
-      if (needsBooleanCoerce(node)) return coerceText(node);
-      return sourceCode.getText(node);
+    const state: RuleState = {
+      context,
+      sourceCode,
+      getTypeAtNode: createTypeResolver(sourceCode),
+      hasIsNotBlankImport: hasNamedImport({ program: sourceCode.ast, source: TS_COMMON_SOURCE, name: "isNotBlank" }),
     };
 
     return {
       "JSXExpressionContainer > ConditionalExpression"(node: TSESTree.Node) {
-        if (node.type !== "ConditionalExpression") return;
-        if (!isJsxChildExpression(node)) return;
-        if (!isOptionalJsxTernary(node)) return;
-
-        context.report({
-          node,
-          messageId: "preferShortCircuit",
-          fix: (fixer) => {
-            const testText = formatBooleanTest(node.test);
-            if (testText === null) return null;
-            const consequentText = getTextPreservingParens(node.consequent);
-            return fixer.replaceText(node, `${testText} && ${consequentText}`);
-          },
-        });
+        checkTernary({ state, node });
       },
 
       "JSXExpressionContainer > LogicalExpression[operator='&&']"(node: TSESTree.Node) {
-        if (node.type !== "LogicalExpression") return;
-        if (!isJsxChildExpression(node)) return;
-
-        for (const leaf of collectGuardLeaves(node)) {
-          if (!needsBooleanCoerce(leaf)) continue;
-
-          const replacement = coerceText(leaf);
-          context.report({
-            node: leaf,
-            messageId: isStringGuard(leaf) ? "requireBlankGuard" : "requireBooleanGuard",
-            data: { expr: sourceCode.getText(leaf) },
-            fix: replacement === null ? null : (fixer) => fixer.replaceText(leaf, replacement),
-          });
-        }
+        checkShortCircuit({ state, node });
       },
     };
   },

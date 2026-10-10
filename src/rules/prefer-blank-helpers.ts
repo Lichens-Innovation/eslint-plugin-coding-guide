@@ -1,8 +1,8 @@
-import type { TSESTree } from "@typescript-eslint/utils";
+import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
 import { isNegation } from "../utils/ast.utils.js";
-import { createTypeResolver, isNullableStringType } from "../utils/type.utils.js";
+import { createTypeResolver, isNullableStringType, type TypeResolver } from "../utils/type.utils.js";
 
 const EQUALITY_OPERATORS = ["===", "=="];
 const INEQUALITY_OPERATORS = ["!==", "!="];
@@ -49,6 +49,105 @@ const getNegationParts = (node: TSESTree.UnaryExpression): NegationParts => {
   return { operand: node.argument, isDoubleNegation: false };
 };
 
+interface TypedNodeArgs {
+  getTypeAtNode: TypeResolver;
+  node: TSESTree.Node;
+}
+
+const isStringExpression = ({ getTypeAtNode, node }: TypedNodeArgs): boolean =>
+  isNullableStringType(getTypeAtNode(node));
+
+/** Without type information, assume the operand of `=== ""` is a string. */
+const isMaybeStringExpression = ({ getTypeAtNode, node }: TypedNodeArgs): boolean => {
+  const type = getTypeAtNode(node);
+  return !type || isNullableStringType(type);
+};
+
+const getEmptyStringComparisonSubject = (args: TypedNodeArgs): TSESTree.Node | undefined => {
+  const trimSubject = getTrimSubject(args.node);
+  if (trimSubject) return trimSubject;
+  return isMaybeStringExpression(args) ? args.node : undefined;
+};
+
+const getZeroLengthComparisonSubject = ({ getTypeAtNode, node }: TypedNodeArgs): TSESTree.Node | undefined => {
+  const lengthObject = getMemberObject({ node, propertyName: "length" });
+  if (!lengthObject) return undefined;
+  const trimSubject = getTrimSubject(lengthObject);
+  if (trimSubject) return trimSubject;
+  return isStringExpression({ getTypeAtNode, node: lengthObject }) ? lengthObject : undefined;
+};
+
+interface BlankCheckSubjectArgs extends TypedNodeArgs {
+  other: TSESTree.Node;
+}
+
+const getBlankCheckSubject = ({ other, ...args }: BlankCheckSubjectArgs): TSESTree.Node | undefined => {
+  if (isEmptyStringLiteral(other)) return getEmptyStringComparisonSubject(args);
+  if (isZeroLiteral(other)) return getZeroLengthComparisonSubject(args);
+  return undefined;
+};
+
+const getFalsyCheckSubject = (args: TypedNodeArgs): TSESTree.Node | undefined => {
+  const trimSubject = getTrimSubject(args.node);
+  if (trimSubject) return trimSubject;
+  return isStringExpression(args) ? args.node : undefined;
+};
+
+interface RuleState {
+  context: Readonly<TSESLint.RuleContext<MessageId, []>>;
+  getTypeAtNode: TypeResolver;
+}
+
+interface ReportArgs {
+  state: RuleState;
+  node: TSESTree.Node;
+  messageId: MessageId;
+  subject: TSESTree.Node;
+}
+
+const report = ({ state, node, messageId, subject }: ReportArgs): void => {
+  state.context.report({ node, messageId, data: { expr: state.context.sourceCode.getText(subject) } });
+};
+
+interface CheckArgs<T extends TSESTree.Node> {
+  state: RuleState;
+  node: T;
+}
+
+const checkComparison = ({ state, node }: CheckArgs<TSESTree.BinaryExpression>): void => {
+  const isEquality = EQUALITY_OPERATORS.includes(node.operator);
+  if (!isEquality && !INEQUALITY_OPERATORS.includes(node.operator)) return;
+  if (node.left.type === "PrivateIdentifier") return;
+
+  const { getTypeAtNode } = state;
+  const subject =
+    getBlankCheckSubject({ getTypeAtNode, node: node.left, other: node.right }) ??
+    getBlankCheckSubject({ getTypeAtNode, node: node.right, other: node.left });
+  if (!subject) return;
+
+  report({ state, node, messageId: isEquality ? "preferIsBlank" : "preferIsNotBlank", subject });
+};
+
+const checkNegation = ({ state, node }: CheckArgs<TSESTree.UnaryExpression>): void => {
+  if (!isNegation(node) || isNegation(node.parent)) return;
+
+  const { operand, isDoubleNegation } = getNegationParts(node);
+  const subject = getFalsyCheckSubject({ getTypeAtNode: state.getTypeAtNode, node: operand });
+  if (!subject) return;
+
+  report({ state, node, messageId: isDoubleNegation ? "preferIsNotBlank" : "preferIsBlank", subject });
+};
+
+const checkFallback = ({ state, node }: CheckArgs<TSESTree.LogicalExpression>): void => {
+  if (node.operator !== "||") return;
+
+  const subject = getFalsyCheckSubject({ getTypeAtNode: state.getTypeAtNode, node: node.left });
+  if (!subject) return;
+
+  const messageId = isSimpleReference(subject) ? "preferBlankFallback" : "preferBlankFallbackExtract";
+  report({ state, node, messageId, subject });
+};
+
 export default createRule({
   name: "prefer-blank-helpers",
   meta: {
@@ -71,94 +170,12 @@ export default createRule({
   },
   defaultOptions: [],
   create(context) {
-    const sourceCode = context.sourceCode;
-
-    const getTypeAtNode = createTypeResolver(sourceCode);
-
-    const isStringExpression = (node: TSESTree.Node): boolean => isNullableStringType(getTypeAtNode(node));
-
-    /** Without type information, assume the operand of `=== ""` is a string. */
-    const isMaybeStringExpression = (node: TSESTree.Node): boolean => {
-      const type = getTypeAtNode(node);
-      return !type || isNullableStringType(type);
-    };
-
-    interface ReportArgs {
-      node: TSESTree.Node;
-      messageId: MessageId;
-      subject: TSESTree.Node;
-    }
-
-    const report = ({ node, messageId, subject }: ReportArgs): void => {
-      context.report({ node, messageId, data: { expr: sourceCode.getText(subject) } });
-    };
-
-    interface ComparisonSides {
-      side: TSESTree.Node;
-      other: TSESTree.Node;
-    }
-
-    const getEmptyStringComparisonSubject = (side: TSESTree.Node): TSESTree.Node | undefined => {
-      const trimSubject = getTrimSubject(side);
-      if (trimSubject) return trimSubject;
-      return isMaybeStringExpression(side) ? side : undefined;
-    };
-
-    const getZeroLengthComparisonSubject = (side: TSESTree.Node): TSESTree.Node | undefined => {
-      const lengthObject = getMemberObject({ node: side, propertyName: "length" });
-      if (!lengthObject) return undefined;
-      const trimSubject = getTrimSubject(lengthObject);
-      if (trimSubject) return trimSubject;
-      return isStringExpression(lengthObject) ? lengthObject : undefined;
-    };
-
-    const getBlankCheckSubject = ({ side, other }: ComparisonSides): TSESTree.Node | undefined => {
-      if (isEmptyStringLiteral(other)) return getEmptyStringComparisonSubject(side);
-      if (isZeroLiteral(other)) return getZeroLengthComparisonSubject(side);
-      return undefined;
-    };
-
-    const getComparisonSubject = (node: TSESTree.BinaryExpression): TSESTree.Node | undefined =>
-      getBlankCheckSubject({ side: node.left, other: node.right }) ??
-      getBlankCheckSubject({ side: node.right, other: node.left });
-
-    const getFalsyCheckSubject = (node: TSESTree.Node): TSESTree.Node | undefined => {
-      const trimSubject = getTrimSubject(node);
-      if (trimSubject) return trimSubject;
-      return isStringExpression(node) ? node : undefined;
-    };
+    const state: RuleState = { context, getTypeAtNode: createTypeResolver(context.sourceCode) };
 
     return {
-      BinaryExpression(node) {
-        const isEquality = EQUALITY_OPERATORS.includes(node.operator);
-        if (!isEquality && !INEQUALITY_OPERATORS.includes(node.operator)) return;
-        if (node.left.type === "PrivateIdentifier") return;
-
-        const subject = getComparisonSubject(node);
-        if (!subject) return;
-
-        report({ node, messageId: isEquality ? "preferIsBlank" : "preferIsNotBlank", subject });
-      },
-
-      UnaryExpression(node) {
-        if (!isNegation(node) || isNegation(node.parent)) return;
-
-        const { operand, isDoubleNegation } = getNegationParts(node);
-        const subject = getFalsyCheckSubject(operand);
-        if (!subject) return;
-
-        report({ node, messageId: isDoubleNegation ? "preferIsNotBlank" : "preferIsBlank", subject });
-      },
-
-      LogicalExpression(node) {
-        if (node.operator !== "||") return;
-
-        const subject = getFalsyCheckSubject(node.left);
-        if (!subject) return;
-
-        const messageId = isSimpleReference(subject) ? "preferBlankFallback" : "preferBlankFallbackExtract";
-        report({ node, messageId, subject });
-      },
+      BinaryExpression: (node) => checkComparison({ state, node }),
+      UnaryExpression: (node) => checkNegation({ state, node }),
+      LogicalExpression: (node) => checkFallback({ state, node }),
     };
   },
 });

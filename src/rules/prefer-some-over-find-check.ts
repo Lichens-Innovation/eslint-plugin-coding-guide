@@ -1,4 +1,4 @@
-import type { TSESTree } from "@typescript-eslint/utils";
+import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
 import { isUndefinedIdentifier } from "../utils/ast.utils.js";
@@ -25,6 +25,18 @@ interface ReportWithSomeArgs {
   negate: boolean;
 }
 
+interface ToSomeCallTextArgs {
+  sourceCode: Readonly<TSESLint.SourceCode>;
+  findCall: TSESTree.CallExpression;
+}
+
+const toSomeCallText = ({ sourceCode, findCall }: ToSomeCallTextArgs): string => {
+  const callee = findCall.callee as TSESTree.MemberExpression;
+  const calleeText = sourceCode.getText(callee.object);
+  const argsText = findCall.arguments.map((arg) => sourceCode.getText(arg)).join(", ");
+  return `${calleeText}.some(${argsText})`;
+};
+
 export default createRule({
   name: "prefer-some-over-find-check",
   meta: {
@@ -42,19 +54,12 @@ export default createRule({
   create(context) {
     const sourceCode = context.sourceCode;
 
-    const toSomeCallText = (findCallNode: TSESTree.CallExpression): string => {
-      const callee = findCallNode.callee as TSESTree.MemberExpression;
-      const calleeText = sourceCode.getText(callee.object);
-      const argsText = findCallNode.arguments.map((arg) => sourceCode.getText(arg)).join(", ");
-      return `${calleeText}.some(${argsText})`;
-    };
-
     const reportWithSome = ({ node, findCall, negate }: ReportWithSomeArgs): void => {
       context.report({
         node,
         messageId: "preferSome",
         fix: (fixer) => {
-          const someText = toSomeCallText(findCall);
+          const someText = toSomeCallText({ sourceCode, findCall });
           return fixer.replaceText(node, negate ? `!${someText}` : someText);
         },
       });

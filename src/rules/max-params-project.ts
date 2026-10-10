@@ -170,6 +170,71 @@ const isContextuallyExternal = ({ node, tsNode, checker }: IsContextuallyExterna
   return !!contextualType && typeDeclaredExternally(contextualType);
 };
 
+type Context = Readonly<TSESLint.RuleContext<"exceed", [number | Options]>>;
+
+interface FunctionCheckArgs {
+  context: Context;
+  node: FunctionLike;
+}
+
+interface FindVariableArgs {
+  context: Context;
+  identifier: TSESTree.Identifier;
+}
+
+const findVariable = ({ context, identifier }: FindVariableArgs): TSESLint.Scope.Variable | null => {
+  let scope: TSESLint.Scope.Scope | null = context.sourceCode.getScope(identifier);
+  while (scope) {
+    const variable = scope.variables.find((candidate) => candidate.name === identifier.name);
+    if (variable) return variable;
+    scope = scope.upper;
+  }
+  return null;
+};
+
+// Handles `const stateCreator = (set, get) => (...)` — a callback bound to a
+// name and passed by reference later (e.g. zustand's `create(stateCreator)` /
+// `persist(immer(stateCreator), opts)`) instead of inlined at the call site.
+const isImposedThroughVariableUsage = ({ context, node }: FunctionCheckArgs): boolean => {
+  const declarator = node.parent;
+  if (declarator?.type !== "VariableDeclarator" || declarator.init !== node) return false;
+  if (declarator.id.type !== "Identifier") return false;
+
+  const variable = findVariable({ context, identifier: declarator.id });
+  if (!variable) return false;
+
+  return variable.references.some(
+    (reference) => reference.identifier !== declarator.id && isPassedAsCallArgument(reference.identifier)
+  );
+};
+
+const isImposedByCallee = (args: FunctionCheckArgs): boolean => {
+  if (isJsxAttributeCallback(args.node)) return true;
+  if (isPassedAsCallArgument(args.node)) return true;
+  return isImposedThroughVariableUsage(args);
+};
+
+const checkImposedByExternalType = ({ context, node }: FunctionCheckArgs): boolean => {
+  const services = ESLintUtils.getParserServices(context, true);
+  if (!services.program) return false;
+
+  const checker = services.program.getTypeChecker();
+  const tsNode = services.esTreeNodeToTSNodeMap.get(node);
+  if (!tsNode) return false;
+
+  if (isContextuallyExternal({ node, tsNode, checker })) return true;
+
+  return classMethodOverridesExternal({ functionNode: node, services, checker });
+};
+
+const isImposedByExternalType = (args: FunctionCheckArgs): boolean => {
+  try {
+    return checkImposedByExternalType(args);
+  } catch {
+    return false;
+  }
+};
+
 export default createRule<[number | Options], "exceed">({
   name: "max-params-project",
   meta: {
@@ -197,63 +262,10 @@ export default createRule<[number | Options], "exceed">({
   create(context, [option]) {
     const max = resolveMax(option);
 
-    const findVariable = (identifierNode: TSESTree.Identifier): TSESLint.Scope.Variable | null => {
-      let scope: TSESLint.Scope.Scope | null = context.sourceCode.getScope(identifierNode);
-      while (scope) {
-        const variable = scope.variables.find((candidate) => candidate.name === identifierNode.name);
-        if (variable) return variable;
-        scope = scope.upper;
-      }
-      return null;
-    };
-
-    // Handles `const stateCreator = (set, get) => (...)` — a callback bound to a
-    // name and passed by reference later (e.g. zustand's `create(stateCreator)` /
-    // `persist(immer(stateCreator), opts)`) instead of inlined at the call site.
-    const isImposedThroughVariableUsage = (node: FunctionLike): boolean => {
-      const declarator = node.parent;
-      if (declarator?.type !== "VariableDeclarator" || declarator.init !== node) return false;
-      if (declarator.id.type !== "Identifier") return false;
-
-      const variable = findVariable(declarator.id);
-      if (!variable) return false;
-
-      return variable.references.some(
-        (reference) => reference.identifier !== declarator.id && isPassedAsCallArgument(reference.identifier)
-      );
-    };
-
-    const isImposedByCallee = (node: FunctionLike): boolean => {
-      if (isJsxAttributeCallback(node)) return true;
-      if (isPassedAsCallArgument(node)) return true;
-      return isImposedThroughVariableUsage(node);
-    };
-
-    const checkImposedByExternalType = (node: FunctionLike): boolean => {
-      const services = ESLintUtils.getParserServices(context, true);
-      if (!services.program) return false;
-
-      const checker = services.program.getTypeChecker();
-      const tsNode = services.esTreeNodeToTSNodeMap.get(node);
-      if (!tsNode) return false;
-
-      if (isContextuallyExternal({ node, tsNode, checker })) return true;
-
-      return classMethodOverridesExternal({ functionNode: node, services, checker });
-    };
-
-    const isImposedByExternalType = (node: FunctionLike): boolean => {
-      try {
-        return checkImposedByExternalType(node);
-      } catch {
-        return false;
-      }
-    };
-
     const checkFunction = (node: FunctionLike): void => {
       if (node.params.length <= max) return;
-      if (isImposedByCallee(node)) return;
-      if (isImposedByExternalType(node)) return;
+      if (isImposedByCallee({ context, node })) return;
+      if (isImposedByExternalType({ context, node })) return;
 
       context.report({
         node,

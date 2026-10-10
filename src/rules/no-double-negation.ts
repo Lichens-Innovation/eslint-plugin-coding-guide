@@ -1,5 +1,5 @@
 import { isBlank } from "@lichens-innovation/ts-common";
-import type { TSESTree } from "@typescript-eslint/utils";
+import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
 
@@ -33,14 +33,13 @@ const INEQUALITY_TO_EQUALITY: Record<string, string> = { "!==": "===", "!=": "==
 const isNegatedInequality = (node: TSESTree.Expression): node is TSESTree.BinaryExpression =>
   node.type === "BinaryExpression" && node.operator in INEQUALITY_TO_EQUALITY;
 
-interface ReportNegatedInequalityArgs {
-  node: TSESTree.UnaryExpression;
-  inequality: TSESTree.BinaryExpression;
-}
-
 export interface Options {
   antonyms?: Record<string, string>;
 }
+
+type MessageId = "negatedNegativeName" | "negatedInequality" | "doubleNegativeName";
+
+type Context = Readonly<TSESLint.RuleContext<MessageId, [Options]>>;
 
 /** `foo`, `obj.foo`, `foo()`, `obj.foo()`, `obj?.foo()` → `"foo"` */
 const getReferencedName = (node: TSESTree.Expression): string | undefined => {
@@ -70,7 +69,68 @@ const getDeclaredIdentifier = (node: TSESTree.Node): TSESTree.Identifier | undef
   }
 };
 
-export default createRule<[Options], "negatedNegativeName" | "negatedInequality" | "doubleNegativeName">({
+interface GetPositiveDeclaredNameArgs {
+  name: string;
+  antonyms: Record<string, string>;
+}
+
+const getPositiveDeclaredName = ({ name, antonyms }: GetPositiveDeclaredNameArgs): string | undefined => {
+  const match = NEGATED_WORD_NAME_PATTERN.exec(name);
+  if (!match) return undefined;
+  const [, prefix, word, rest] = match;
+  const antonym = antonyms[word];
+  return antonym ? `${prefix}${antonym}${rest}` : undefined;
+};
+
+interface CheckNegationArgs {
+  context: Context;
+  node: TSESTree.UnaryExpression;
+}
+
+const reportNegatedNegativeName = ({ context, node }: CheckNegationArgs): void => {
+  const name = getReferencedName(node.argument);
+  if (isBlank(name) || !NEGATIVE_NAME_PATTERN.test(name)) return;
+
+  context.report({ node, messageId: "negatedNegativeName", data: { name, positive: toPositiveName(name) } });
+};
+
+const checkNegation = ({ context, node }: CheckNegationArgs): void => {
+  if (node.operator !== "!") return;
+
+  const inequality = node.argument;
+  if (isNegatedInequality(inequality)) {
+    context.report({
+      node,
+      messageId: "negatedInequality",
+      data: { operator: inequality.operator, equality: INEQUALITY_TO_EQUALITY[inequality.operator] },
+    });
+    return;
+  }
+
+  reportNegatedNegativeName({ context, node });
+};
+
+interface CheckDeclaredNameArgs {
+  context: Context;
+  node: TSESTree.Node;
+  antonyms: Record<string, string>;
+}
+
+const checkDeclaredName = ({ context, node, antonyms }: CheckDeclaredNameArgs): void => {
+  const identifier = getDeclaredIdentifier(node);
+  if (!identifier) return;
+
+  const positive = getPositiveDeclaredName({ name: identifier.name, antonyms });
+  if (isBlank(positive)) return;
+
+  context.report({
+    node: identifier,
+    messageId: "doubleNegativeName",
+    data: { name: identifier.name, positive },
+  });
+};
+
+export default createRule<[Options], MessageId>({
   name: "no-double-negation",
   meta: {
     type: "suggestion",
@@ -98,55 +158,15 @@ export default createRule<[Options], "negatedNegativeName" | "negatedInequality"
   create(context, [options]) {
     const antonyms = { ...DEFAULT_ANTONYMS, ...options.antonyms };
 
-    const getPositiveDeclaredName = (name: string): string | undefined => {
-      const match = NEGATED_WORD_NAME_PATTERN.exec(name);
-      if (!match) return undefined;
-      const [, prefix, word, rest] = match;
-      const antonym = antonyms[word];
-      return antonym ? `${prefix}${antonym}${rest}` : undefined;
-    };
-
-    const reportNegatedInequality = ({ node, inequality }: ReportNegatedInequalityArgs): void => {
-      context.report({
-        node,
-        messageId: "negatedInequality",
-        data: { operator: inequality.operator, equality: INEQUALITY_TO_EQUALITY[inequality.operator] },
-      });
-    };
-
-    const reportNegatedNegativeName = (node: TSESTree.UnaryExpression): void => {
-      const name = getReferencedName(node.argument);
-      if (isBlank(name) || !NEGATIVE_NAME_PATTERN.test(name)) return;
-
-      context.report({ node, messageId: "negatedNegativeName", data: { name, positive: toPositiveName(name) } });
-    };
-
     return {
       UnaryExpression(node) {
-        if (node.operator !== "!") return;
-
-        if (isNegatedInequality(node.argument)) {
-          reportNegatedInequality({ node, inequality: node.argument });
-          return;
-        }
-
-        reportNegatedNegativeName(node);
+        checkNegation({ context, node });
       },
 
       "VariableDeclarator, FunctionDeclaration, PropertyDefinition, MethodDefinition, TSPropertySignature, TSMethodSignature"(
         node: TSESTree.Node
       ) {
-        const identifier = getDeclaredIdentifier(node);
-        if (!identifier) return;
-
-        const positive = getPositiveDeclaredName(identifier.name);
-        if (isBlank(positive)) return;
-
-        context.report({
-          node: identifier,
-          messageId: "doubleNegativeName",
-          data: { name: identifier.name, positive },
-        });
+        checkDeclaredName({ context, node, antonyms });
       },
     };
   },

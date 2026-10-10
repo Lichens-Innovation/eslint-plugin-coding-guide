@@ -1,5 +1,5 @@
 import { isBlank } from "@lichens-innovation/ts-common";
-import type { TSESTree } from "@typescript-eslint/utils";
+import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
 import { isInlineFunction } from "../utils/ast.utils.js";
@@ -59,7 +59,10 @@ const getSoleFunctionExportName = (program: TSESTree.Program): string | undefine
   return primary.isFunctionLike ? primary.name : undefined;
 };
 
+type MessageId = "genericBasename" | "hookFilename" | "suffixFilename";
+
 interface FilenameCheckArgs {
+  context: Readonly<TSESLint.RuleContext<MessageId, []>>;
   program: TSESTree.Program;
   basename: string;
 }
@@ -71,6 +74,41 @@ interface GenericBasenameCheckArgs extends FilenameCheckArgs {
 interface ExportFilenameCheckArgs extends FilenameCheckArgs {
   name: string;
 }
+
+const checkGenericBasename = ({ context, program, basename, extension }: GenericBasenameCheckArgs): void => {
+  if (!GENERIC_BASENAMES.has(basename.toLowerCase())) return;
+
+  context.report({
+    node: program,
+    messageId: "genericBasename",
+    data: { basename, example: `<domain>.${basename}${extension}` },
+  });
+};
+
+const checkHookFilename = ({ context, program, basename, name }: ExportFilenameCheckArgs): void => {
+  if (basename.startsWith("use-")) return;
+
+  context.report({ node: program, messageId: "hookFilename", data: { name } });
+};
+
+const checkSuffixFilename = ({ context, program, basename, name }: ExportFilenameCheckArgs): void => {
+  const match = KEBAB_SUFFIX_BY_NAME_SUFFIX.find(({ nameSuffix }) => name.endsWith(nameSuffix));
+  if (!match || basename.endsWith(match.kebabSuffix)) return;
+
+  context.report({ node: program, messageId: "suffixFilename", data: { name, ...match } });
+};
+
+const checkSoleExportFilename = (args: FilenameCheckArgs): void => {
+  const name = getSoleFunctionExportName(args.program);
+  if (isBlank(name)) return;
+
+  if (/^use[A-Z]/.test(name)) {
+    checkHookFilename({ ...args, name });
+    return;
+  }
+
+  checkSuffixFilename({ ...args, name });
+};
 
 export default createRule({
   name: "filename-convention-by-export-shape",
@@ -89,47 +127,12 @@ export default createRule({
   },
   defaultOptions: [],
   create(context) {
-    const checkGenericBasename = ({ program, basename, extension }: GenericBasenameCheckArgs): void => {
-      if (!GENERIC_BASENAMES.has(basename.toLowerCase())) return;
-
-      context.report({
-        node: program,
-        messageId: "genericBasename",
-        data: { basename, example: `<domain>.${basename}${extension}` },
-      });
-    };
-
-    const checkHookFilename = ({ program, basename, name }: ExportFilenameCheckArgs): void => {
-      if (basename.startsWith("use-")) return;
-
-      context.report({ node: program, messageId: "hookFilename", data: { name } });
-    };
-
-    const checkSuffixFilename = ({ program, basename, name }: ExportFilenameCheckArgs): void => {
-      const match = KEBAB_SUFFIX_BY_NAME_SUFFIX.find(({ nameSuffix }) => name.endsWith(nameSuffix));
-      if (!match || basename.endsWith(match.kebabSuffix)) return;
-
-      context.report({ node: program, messageId: "suffixFilename", data: { name, ...match } });
-    };
-
-    const checkSoleExportFilename = ({ program, basename }: FilenameCheckArgs): void => {
-      const name = getSoleFunctionExportName(program);
-      if (isBlank(name)) return;
-
-      if (/^use[A-Z]/.test(name)) {
-        checkHookFilename({ program, basename, name });
-        return;
-      }
-
-      checkSuffixFilename({ program, basename, name });
-    };
-
     return {
       "Program:exit"(program: TSESTree.Program) {
         const basename = getBasename(context.filename);
 
-        checkGenericBasename({ program, basename, extension: getExtension(context.filename) });
-        checkSoleExportFilename({ program, basename });
+        checkGenericBasename({ context, program, basename, extension: getExtension(context.filename) });
+        checkSoleExportFilename({ context, program, basename });
       },
     };
   },

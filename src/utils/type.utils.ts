@@ -19,7 +19,7 @@ const TYPE_FLAG_NEVER = 262144;
 const NULLISH_FLAGS = TYPE_FLAG_UNDEFINED | TYPE_FLAG_NULL | TYPE_FLAG_VOID;
 const BOOLEANISH_FLAGS = TYPE_FLAG_BOOLEAN | TYPE_FLAG_BOOLEAN_LITERAL | TYPE_FLAG_NEVER | NULLISH_FLAGS;
 
-type TypeResolver = (node: TSESTree.Node) => Type | undefined;
+export type TypeResolver = (node: TSESTree.Node) => Type | undefined;
 
 /** Returns a resolver that yields the TS type of a node, or `undefined` when type information is unavailable. */
 export const createTypeResolver =
