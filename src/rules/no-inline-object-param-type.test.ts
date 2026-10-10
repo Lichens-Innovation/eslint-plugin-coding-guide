@@ -12,9 +12,38 @@ ruleTester.run("no-inline-object-param-type", rule, {
       code: "const axis = option.xAxis as { axisLabel: { formatter: (timestamp: number) => string } };",
       filename: "chart.utils.test.ts",
     },
+    { code: "interface Loaded { a: string } const [loaded] = useState<Loaded>();" },
+    { code: "interface R { rpm?: number } const f = (s: string): R => ({});" },
+    { code: "type X = Record<string, { a: string }>;" },
+    { code: "const x = { a: 1 } as { a: number };" },
+    { code: "const f = (a: { b: string }[]) => a;" },
     { code: "const axis = <{ axisLabel: { show: boolean } }>option.xAxis;", filename: "chart.utils.spec.ts" },
   ],
   invalid: [
+    {
+      code: "const [loaded, setLoaded] = useState<{ filename: string; stats: Stats }>();",
+      errors: [{ messageId: "extractTypeArgInterface" }],
+    },
+    {
+      code: "const m = new Map<string, { id: string }[]>();",
+      errors: [{ messageId: "extractTypeArgInterface" }],
+    },
+    {
+      code: "export const validate = (search: RawSearch): { rpm?: number } => ({});",
+      errors: [{ messageId: "extractReturnInterface" }],
+    },
+    {
+      code: "async function f(): Promise<{ id: string } | null> { return null; }",
+      errors: [{ messageId: "extractReturnInterface" }],
+    },
+    {
+      code: "const x: { a: string } = { a: '' };",
+      errors: [{ messageId: "extractVariableInterface" }],
+    },
+    {
+      code: "const { a }: { a: string } = obj;",
+      errors: [{ messageId: "extractVariableInterface" }],
+    },
     {
       code: "const axis = option.xAxis as { axisLabel: { formatter: (timestamp: number) => string } };",
       filename: "chart.utils.ts",

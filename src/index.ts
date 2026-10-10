@@ -16,7 +16,11 @@ const plugin = {
   rules,
 } as const;
 
-export const configs: { recommended: Linter.Config } = {
+interface PluginConfigs {
+  recommended: Linter.Config;
+}
+
+export const configs: PluginConfigs = {
   recommended: recommended(plugin),
 };
 
