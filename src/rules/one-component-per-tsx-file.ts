@@ -2,9 +2,9 @@ import { isBlank } from "@lichens-innovation/ts-common";
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
-import { isInlineFunction, type FunctionLike } from "../utils/ast.utils.js";
+import type { FunctionLike } from "../utils/ast.utils.js";
 import { isTsxFile } from "../utils/file.utils.js";
-import { functionReturnsJsx, isHookName } from "../utils/react.utils.js";
+import { functionReturnsJsx, isHookName, unwrapComponentFunction } from "../utils/react.utils.js";
 
 interface ComponentDecl {
   node: TSESTree.Node;
@@ -37,7 +37,11 @@ interface CollectFromExportDefaultArgs {
   statement: TSESTree.ExportDefaultDeclaration;
 }
 
-const isComponentName = (name: string): boolean => /^[A-Z]/.test(name) && !isHookName(name);
+// Label of an anonymous default export: it has no name to check, its JSX return is enough.
+const DEFAULT_EXPORT_NAME = "default export";
+
+const isComponentName = (name: string): boolean =>
+  name === DEFAULT_EXPORT_NAME || (/^[A-Z]/.test(name) && !isHookName(name));
 
 const tryAddComponent = ({ found, node, name }: TryAddComponentArgs): void => {
   if (isBlank(name) || !isComponentName(name)) return;
@@ -51,19 +55,21 @@ const collectFromFunctionDeclaration = ({ found, node }: CollectFromFunctionDecl
 
 const collectFromVariableDeclaration = ({ found, declaration }: CollectFromVariableDeclarationArgs): void => {
   for (const declarator of declaration.declarations) {
-    if (declarator.id.type !== "Identifier" || !isInlineFunction(declarator.init)) continue;
-    tryAddComponent({ found, node: declarator.init, name: declarator.id.name });
+    const componentFunction = unwrapComponentFunction(declarator.init);
+    if (declarator.id.type !== "Identifier" || !componentFunction) continue;
+    tryAddComponent({ found, node: componentFunction, name: declarator.id.name });
   }
 };
 
 const collectFromExportDefault = ({ found, statement }: CollectFromExportDefaultArgs): void => {
   const { declaration } = statement;
   if (declaration.type === "FunctionDeclaration") {
-    tryAddComponent({ found, node: declaration, name: declaration.id?.name ?? "default export" });
+    tryAddComponent({ found, node: declaration, name: declaration.id?.name ?? DEFAULT_EXPORT_NAME });
     return;
   }
-  if (isInlineFunction(declaration)) {
-    tryAddComponent({ found, node: declaration, name: "default export" });
+  const componentFunction = unwrapComponentFunction(declaration);
+  if (componentFunction) {
+    tryAddComponent({ found, node: componentFunction, name: DEFAULT_EXPORT_NAME });
   }
 };
 
