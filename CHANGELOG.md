@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.1.0...v2.1.1) (2026-10-11)
+
+
+### Bug Fixes
+
+* **one-component-per-tsx-file:** detect components wrapped in memo/forwardRef/observer ([7755b1b](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/7755b1b5d779737297837c11c25ebd3c96438c72))
+
 # [2.1.0](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.0.0...v2.1.0) (2026-10-10)
 
 
