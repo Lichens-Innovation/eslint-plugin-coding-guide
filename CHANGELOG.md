@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.1.1...v2.1.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* **package:** relax engines to node >=24, drop bun ([a0fcf61](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/a0fcf6192fcb6d738adbac99b98c36ea03675de5))
+
 ## [2.1.1](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.1.0...v2.1.1) (2026-10-11)
 
 
