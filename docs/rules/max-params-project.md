@@ -7,8 +7,8 @@ House style for a function that legitimately needs more parameters: a named `Arg
 ## ❌ Incorrect
 
 ```ts
-function buildKey(siteSlug: string, equipmentSlug: string) {
-  return `${siteSlug}-${equipmentSlug}`;
+function buildKey(siteSlug: string, areaSlug: string, equipmentSlug: string, sensorSlug: string) {
+  return `${siteSlug}-${areaSlug}-${equipmentSlug}-${sensorSlug}`;
 }
 ```
 
@@ -17,14 +17,16 @@ function buildKey(siteSlug: string, equipmentSlug: string) {
 ```ts
 interface BuildKeyArgs {
   siteSlug: string;
+  areaSlug: string;
   equipmentSlug: string;
+  sensorSlug: string;
 }
 
-function buildKey({ siteSlug, equipmentSlug }: BuildKeyArgs) {
-  return `${siteSlug}-${equipmentSlug}`;
+function buildKey({ siteSlug, areaSlug, equipmentSlug, sensorSlug }: BuildKeyArgs) {
+  return `${siteSlug}-${areaSlug}-${equipmentSlug}-${sensorSlug}`;
 }
 ```
 
 ## Options
 
-- A single number, or `{ max: number }` — the maximum parameter count. Defaults to `1`.
+- A single number, or `{ max: number }` — the maximum parameter count. Defaults to `3`.

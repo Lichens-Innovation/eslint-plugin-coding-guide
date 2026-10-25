@@ -10,7 +10,7 @@
 
 **AVOID**:
 
-- Moving a factory that uses `setState`/props to module scope by threading them through as extra params — that breaks `max-params-project`; a flat `(id, event) => ...` util has the same problem.
+- Moving a factory that uses `setState`/props to module scope by threading them through as extra params — a flat `(id, setSelected, props, event) => ...` util quickly exceeds `max-params-project` (max 3) and still couples the util to component internals.
 - Rewriting it as a `function` expression, wrapping it in `useCallback`, or nesting the declaration in an inner `{ }` block — all silence the rule while keeping the same curried factory.
 
 {% include "includes/line_level_issues.md" %}

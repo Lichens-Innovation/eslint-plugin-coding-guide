@@ -27,10 +27,12 @@ The house style is a named Args interface: capitalize the function name, add an 
 Example:
   interface BuildSiteEquipmentKeyArgs {
     siteSlug?: string;
+    areaSlug?: string;
     equipmentSlug?: string;
+    sensorSlug?: string;
   }
 
-  const buildSiteEquipmentSlugKey = ({ siteSlug, equipmentSlug }: BuildSiteEquipmentKeyArgs) => {
+  const buildSiteEquipmentSlugKey = ({ siteSlug, areaSlug, equipmentSlug, sensorSlug }: BuildSiteEquipmentKeyArgs) => {
     // ...
   }
 `;
@@ -39,7 +41,7 @@ export interface Options {
   max?: number;
 }
 
-const resolveMax = (option: number | Options): number => (typeof option === "number" ? option : (option.max ?? 1));
+const resolveMax = (option: number | Options): number => (typeof option === "number" ? option : (option.max ?? 3));
 
 const getMethodName = (method: TSESTree.MethodDefinition | TSESTree.Property): string =>
   method.key.type === "Identifier" ? `Method '${method.key.name}'` : "Method";
@@ -258,7 +260,7 @@ export default createRule<[number | Options], "exceed">({
       exceed: EXPLANATION,
     },
   },
-  defaultOptions: [1],
+  defaultOptions: [3],
   create(context, [option]) {
     const max = resolveMax(option);
 

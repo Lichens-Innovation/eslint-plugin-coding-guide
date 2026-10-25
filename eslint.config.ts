@@ -42,7 +42,7 @@ export default tseslint.config(
       "max-depth": ["error", 2],
       complexity: ["error", 15],
       "sonarjs/cognitive-complexity": ["error", 15],
-      "@typescript-eslint/max-params": ["error", { max: 2 }],
+      "@typescript-eslint/max-params": ["error", { max: 3 }],
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
       "@typescript-eslint/no-inferrable-types": "error",
