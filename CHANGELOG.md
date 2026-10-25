@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.1.2...v2.2.0) (2026-10-25)
+
+
+### Features
+
+* **max-params-project:** raise default max to 3 ([16c164c](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/16c164c76dd49f3ecff19031580b43fa0ff7eea0))
+
 ## [2.1.2](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.1.1...v2.1.2) (2026-10-21)
 
 
