@@ -37,7 +37,7 @@ export default defineConfig((): UserConfig => ({
       tsconfigPath: "./tsconfig.json",
       entryRoot: "src",
       insertTypesEntry: true,
-      exclude: ["src/**/*.test.ts"],
+      exclude: ["src/**/*.test.ts", "src/cli/coding-guide-cli.ts"],
     }),
   ],
   resolve: {
@@ -47,8 +47,11 @@ export default defineConfig((): UserConfig => ({
     copyPublicDir: false,
     sourcemap: true,
     lib: {
-      entry: resolve(import.meta.dirname, "src/index.ts"),
-      fileName: "index",
+      entry: {
+        index: resolve(import.meta.dirname, "src/index.ts"),
+        cli: resolve(import.meta.dirname, "src/cli/coding-guide-cli.ts"),
+      },
+      fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],
     },
     rolldownOptions: {

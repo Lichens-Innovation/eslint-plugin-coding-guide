@@ -10,3 +10,7 @@ echo "✅ Typecheck completed"
 echo "Running lint-staged to apply automatic fixes to staged files…"
 bunx lint-staged
 echo "✅ Lint staged completed"
+
+echo "Running coding-guide on staged files…"
+bun src/cli/coding-guide-cli.ts check --staged
+echo "✅ coding-guide completed"

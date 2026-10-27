@@ -15,8 +15,13 @@
       "import": "./dist/index.js"
     }
   },
+  "bin": {
+    "coding-guide": "./dist/cli.js"
+  },
   "files": [
     "dist",
+    "docs/habit-hooks-guides",
+    "schema",
     "CHANGELOG.md"
   ],
   "publishConfig": {
@@ -39,14 +44,25 @@
     "format:check": "prettier --check .",
     "build": "rimraf dist && vite build",
     "test": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "habit:hooks": "bun src/cli/coding-guide-cli.ts check --branch main",
+    "habit:hooks:full": "bun src/cli/coding-guide-cli.ts check",
+    "habit:snoozed": "bun src/cli/coding-guide-cli.ts snooze --list"
   },
   "peerDependencies": {
-    "eslint": ">=9.0.0"
+    "eslint": ">=9.0.0",
+    "typescript": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@lichens-innovation/ts-common": "1.27.2",
-    "@typescript-eslint/utils": "8.71.1"
+    "@typescript-eslint/utils": "8.71.1",
+    "jscpd": "5.4.0",
+    "knip": "6.40.0"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "21.2.3",
@@ -66,8 +82,6 @@
     "globals": "17.13.0",
     "husky": "9.1.7",
     "jiti": "2.7.0",
-    "jscpd": "5.4.0",
-    "knip": "6.40.0",
     "lint-staged": "17.6.0",
     "npm-package-json-lint": "11.0.0",
     "prettier": "3.9.9",
