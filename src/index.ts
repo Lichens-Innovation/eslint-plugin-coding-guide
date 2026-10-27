@@ -8,6 +8,9 @@ export type { Options as MaxParamsProjectOptions } from "./rules/max-params-proj
 export type { Options as NoDoubleNegationOptions } from "./rules/no-double-negation.js";
 export type { Options as RequireFallbackOnDeepChainOptions } from "./rules/require-fallback-on-deep-chain.js";
 export type { Options as TodoTicketRefOptions } from "./rules/todo-ticket-ref.js";
+export type { CodingGuideConfig, Severity, SmellConfig, UncoachedPolicy } from "./cli/config/config.types.js";
+export type { Finding, Issue, IssueDetails } from "./cli/finding.types.js";
+export { defineTransformer, type Transformer, type TransformerContext } from "./cli/transformers/transformer.types.js";
 
 const plugin = {
   meta: {

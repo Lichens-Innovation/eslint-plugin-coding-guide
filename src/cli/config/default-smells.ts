@@ -1,0 +1,113 @@
+import type { Severity, SmellConfig } from "./config.types.js";
+
+const CATALOGUE_SEVERITY: Record<string, Severity> = {
+  "oversized-function": "enforced",
+  "too-many-parameters": "enforced",
+  "high-complexity": "enforced",
+  "deep-nesting": "enforced",
+  "oversized-file": "enforced",
+  "oversized-block": "enforced",
+  "unused-variable": "enforced",
+  "loose-equality": "enforced",
+  "var-declaration": "enforced",
+  "non-const-binding": "enforced",
+  "duplicate-import": "enforced",
+  "warning-comment": "suggested",
+  "explicit-any": "suggested",
+  "non-null-assertion": "suggested",
+  "redundant-type-annotation": "enforced",
+  "non-essential-comment": "enforced",
+  "duplicated-code": "suggested",
+  "unused-class-member": "enforced",
+  "unused-file": "enforced",
+  "unused-export": "enforced",
+  "test-only-dead-code": "enforced",
+  "unused-dependency": "enforced",
+  "unused-import": "enforced",
+  "swallowed-exception": "suggested",
+  "parse-error": "enforced",
+  "incomplete-run": "enforced",
+};
+
+const ENFORCED_RULES_WITH_GUIDE: Record<string, string> = {
+  "sonarjs/cognitive-complexity": "sonarjs-cognitive-complexity",
+  "@typescript-eslint/no-floating-promises": "no-floating-promises",
+  "@typescript-eslint/no-misused-promises": "no-misused-promises",
+  "@typescript-eslint/only-throw-error": "only-throw-error",
+  "@typescript-eslint/consistent-type-definitions": "consistent-type-definitions",
+  "func-style": "func-style",
+  "no-restricted-imports": "no-restricted-imports",
+  "no-restricted-syntax": "no-restricted-syntax",
+  "react/destructuring-assignment": "destructuring-assignment",
+  "react/jsx-curly-brace-presence": "jsx-curly-brace-presence",
+  "react/no-array-index-key": "no-array-index-key",
+  "react/no-danger": "no-danger",
+  "no-eval": "no-eval",
+  "no-new-func": "no-eval",
+  "unicorn/filename-case": "filename-case",
+};
+
+const CODING_GUIDE_ENFORCED_RULES = [
+  "max-params-project",
+  "no-explicit-undefined-optional",
+  "prefer-jsx-short-circuit",
+  "require-numeric-enum-initializer",
+  "no-unguarded-json-parse",
+  "prefer-some-over-find-check",
+  "prefer-positive-condition",
+  "prefer-includes-over-or-chain",
+  "no-nested-try",
+  "no-exported-mutable-state",
+  "no-inline-object-param-type",
+  "prefer-nullish-helpers",
+  "require-fallback-on-deep-chain",
+  "no-inline-render-function",
+  "no-jsx-in-variable",
+  "no-inline-array-chain-in-jsx",
+  "no-hook-returning-jsx",
+  "no-render-fn-in-usecallback",
+  "no-trivial-usememo",
+  "no-non-hook-use-prefix",
+  "one-component-per-tsx-file",
+  "no-inline-curried-handler",
+  "no-inline-guard-chain-handler",
+  "prefer-reactnode-over-jsxelement-union",
+  "prefer-props-with-children",
+  "hoist-static-component-constants",
+  "require-effect-cleanup",
+  "prefer-state-updater-form",
+  "require-usestate-useref-generic",
+  "prefer-element-ref-type",
+  "prefer-role-query-over-testid",
+  "no-tests-in-dunder-folder",
+  "filename-convention-by-export-shape",
+  "max-files-per-folder",
+  "no-bind-this",
+  "no-double-negation",
+  "no-inline-await-access",
+  "no-mobx-reaction",
+  "prefer-antd-flex",
+  "prefer-blank-helpers",
+  "prefer-each-table",
+  "prefer-get-error-message",
+  "require-aaa-comments",
+];
+
+const catalogueSmells = Object.entries(CATALOGUE_SEVERITY).map(([smell, severity]) => [smell, { severity }]);
+
+const ruleSmells = Object.entries(ENFORCED_RULES_WITH_GUIDE).map(([smell, guide]) => [
+  smell,
+  { severity: "enforced", guide },
+]);
+
+const codingGuideSmells = CODING_GUIDE_ENFORCED_RULES.map((rule) => [
+  `coding-guide/${rule}`,
+  { severity: "enforced", guide: rule },
+]);
+
+export const DEFAULT_SMELLS: Record<string, SmellConfig> = Object.fromEntries([
+  ...catalogueSmells,
+  ...ruleSmells,
+  ...codingGuideSmells,
+  ["coding-guide/todo-ticket-ref", { severity: "suggested", guide: "todo-ticket-ref" }],
+]);

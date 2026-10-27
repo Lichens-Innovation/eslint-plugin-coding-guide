@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "coding-guide configuration (.coding-guide/config.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "files": {
+      "description": "Globs of the source files the checks see. Prefix with ! to exclude.",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": ["**/*.ts", "**/*.tsx", "!**/node_modules/**"]
+    },
+    "transformers": {
+      "description": "Ordered findings filters: built-in names (allow-aaa, snooze, habit-hooks-disable, coding-guide-disable) or ./relative paths to modules default-exporting a transformer function.",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": ["allow-aaa", "snooze", "habit-hooks-disable"]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "branchBase": {
+          "description": "Default base ref of `check --branch`.",
+          "type": "string",
+          "default": "main"
+        }
+      }
+    },
+    "sensors": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eslint": { "$ref": "#/definitions/sensorToggle" },
+        "knip": { "$ref": "#/definitions/sensorToggle" },
+        "jscpd": { "$ref": "#/definitions/sensorToggle" },
+        "comment": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "disabled": { "type": "boolean" },
+            "singleLineMinLength": { "type": "integer", "minimum": 0, "default": 10 },
+            "blockMinLength": { "type": "integer", "minimum": 0, "default": 15 }
+          }
+        }
+      }
+    },
+    "uncoached": {
+      "description": "What to do with a smell that has no declared severity.",
+      "enum": ["suggest", "ignore", "enforce"],
+      "default": "suggest"
+    },
+    "smells": {
+      "description": "Per-smell overrides, merged over the built-in preset. Keys are smell names or ESLint rule ids.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "severity": { "enum": ["enforced", "suggested", "disabled"] },
+          "guide": {
+            "description": "Guide file name (with or without .md), looked up in .coding-guide/guides/ then in the package guides.",
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "sensorToggle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "disabled": { "type": "boolean" } }
+    }
+  }
+}
