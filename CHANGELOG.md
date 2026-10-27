@@ -1,3 +1,10 @@
+# [2.3.0](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.2.0...v2.3.0) (2026-10-27)
+
+
+### Features
+
+* **cli:** add coding-guide CLI replacing habit-hooks ([#4](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/issues/4)) ([0e2798b](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/0e2798bfd7380c50e5d49849c76d9b00661eca7c))
+
 # [2.2.0](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.1.2...v2.2.0) (2026-10-25)
 
 
