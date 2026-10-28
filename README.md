@@ -13,6 +13,7 @@ ESLint flat-config plugin enforcing Lichens Innovation TypeScript/React coding s
   - [Usage](#usage)
   - [Rules](#rules)
   - [Habit checks CLI (`coding-guide`)](#habit-checks-cli-coding-guide)
+  - [Adopting in an existing project](#adopting-in-an-existing-project)
   - [Development](#development)
   - [All Scripts](#all-scripts)
   - [Contributions](#contributions)
@@ -145,7 +146,7 @@ Every key is optional; unknown keys are rejected.
 
 ```json
 {
-  "$schema": "./node_modules/@lichens-innovation/eslint-plugin-coding-guide/schema/config.schema.json",
+  "$schema": "../node_modules/@lichens-innovation/eslint-plugin-coding-guide/schema/config.schema.json",
   "files": ["**/*.ts", "**/*.tsx", "!**/node_modules/**"],
   "transformers": ["allow-aaa", "snooze", "habit-hooks-disable"],
   "scope": { "branchBase": "main" },
@@ -187,6 +188,10 @@ export default defineTransformer((findings) =>
 ```json
 { "transformers": ["allow-aaa", "snooze", "habit-hooks-disable", "./.coding-guide/transformers/ignore-generated.ts"] }
 ```
+
+## Adopting in an existing project
+
+The [adoption guide](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/blob/main/docs/adoption-guide.md) covers integrating the plugin and the CLI into an existing codebase, mitigating the first-run findings (ignores, snooze, `suggested` severities) and tightening the standard progressively.
 
 ## Development
 
