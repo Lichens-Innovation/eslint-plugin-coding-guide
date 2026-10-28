@@ -1,3 +1,10 @@
+## [2.3.1](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.3.0...v2.3.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* **cli:** key jscpd issues by project-relative path ([#5](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/issues/5)) ([aa631e7](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/aa631e7c2233c4c57eae81f0e0818ecf78c9ee0d))
+
 # [2.3.0](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.2.0...v2.3.0) (2026-10-27)
 
 
