@@ -46,6 +46,11 @@ export const forkPoint = (cwd: string, ref: string): string => {
   return mergeBase.ok ? mergeBase.stdout.trim() : tip.stdout.trim();
 };
 
+export const fileAtRevision = (cwd: string, revision: string, path: string): string | undefined => {
+  const result = runGit(cwd, ["show", `${revision}:./${path}`]);
+  return result.ok ? result.stdout : undefined;
+};
+
 export const gitConfigValue = (cwd: string, key: string): string => runGit(cwd, ["config", "--get", key]).stdout.trim();
 
 export const gitPath = (cwd: string, path: string): string => gitOutput(cwd, ["rev-parse", "--git-path", path]).trim();

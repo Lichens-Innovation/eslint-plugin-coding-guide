@@ -4,6 +4,7 @@ import { join, relative } from "node:path";
 import { toPosixPath } from "../../utils/file.utils.js";
 import { CliError } from "../cli-error.js";
 import type { LoadedConfig } from "../config/config.types.js";
+import { loadSnoozeIndex, loadSnoozeIndexAt } from "../snooze/snooze-index.js";
 import {
   diffNames,
   forkPoint,
@@ -71,14 +72,39 @@ const selectedFiles = (mode: ScopeMode, config: LoadedConfig): string[] => {
   }
 };
 
+const baseRevision = (mode: ScopeMode, config: LoadedConfig): string | undefined => {
+  switch (mode.kind) {
+    case "staged":
+      return "HEAD";
+    case "branch":
+      return forkPoint(config.cwd, mode.base ?? config.scope.branchBase);
+    case "since":
+      return forkPoint(config.cwd, mode.ref);
+    default:
+      return undefined;
+  }
+};
+
+const unsnoozedKeys = (mode: ScopeMode, config: LoadedConfig): string[] => {
+  const revision = baseRevision(mode, config);
+  if (revision === undefined) return [];
+  const current = new Set(loadSnoozeIndex(config));
+  return loadSnoozeIndexAt(config, revision).filter((key) => !current.has(key));
+};
+
 const isPresentFile = (cwd: string, file: string): boolean => {
   const path = join(cwd, file);
   return existsSync(path) && statSync(path).isFile();
 };
 
 export const resolveScope = (mode: ScopeMode, config: LoadedConfig): Scope => {
-  const touched = [...new Set(selectedFiles(mode, config))].filter((file) => isPresentFile(config.cwd, file)).sort();
+  const unsnoozed = unsnoozedKeys(mode, config).filter((file) => isPresentFile(config.cwd, file));
+  const selected = [...selectedFiles(mode, config), ...unsnoozed];
+  const touched = [...new Set(selected)].filter((file) => isPresentFile(config.cwd, file)).sort();
   const files = touched.filter((file) => matchesFileGlobs(file, config.files));
-  const notices = mode.kind === "staged" ? partiallyStagedNotices(config.cwd, files) : [];
+  const notices = [
+    ...(mode.kind === "staged" ? partiallyStagedNotices(config.cwd, files) : []),
+    ...unsnoozed.map((file) => `${file} was removed from the snooze index: analysed in full`),
+  ];
   return { mode, files, touched, notices };
 };

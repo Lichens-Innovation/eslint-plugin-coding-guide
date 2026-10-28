@@ -71,6 +71,52 @@ describe("resolveScope", () => {
     expect(scope.files).toEqual(["src/feature.ts", "src/wip.ts"]);
   });
 
+  it("re-checks files removed from the snooze index for --staged", () => {
+    // arrange
+    project.write("src/snoozed.ts", "export const g = 7;\n");
+    project.write(".coding-guide/snooze.json", '["src/kept.ts", "src/snoozed.ts"]\n');
+    project.git("add", ".");
+    project.git("commit", "--quiet", "-m", "snooze");
+    project.write(".coding-guide/snooze.json", '["src/kept.ts"]\n');
+    project.git("add", ".coding-guide/snooze.json");
+
+    // act
+    const scope = resolveScope({ kind: "staged" }, project.config());
+
+    // assert
+    expect(scope.files).toEqual(["src/snoozed.ts"]);
+    expect(scope.notices).toEqual(["src/snoozed.ts was removed from the snooze index: analysed in full"]);
+  });
+
+  it("re-checks files removed from the snooze index since the fork point for --branch", () => {
+    // arrange
+    project.write(".coding-guide/snooze.json", '["src/committed.ts"]\n');
+    project.git("add", ".");
+    project.git("commit", "--quiet", "-m", "snooze");
+    project.git("checkout", "--quiet", "-b", "feature");
+    project.write(".coding-guide/snooze.json", "[]\n");
+    project.git("commit", "--quiet", "-am", "unsnooze");
+
+    // act
+    const scope = resolveScope({ kind: "branch" }, project.config());
+
+    // assert
+    expect(scope.files).toEqual(["src/committed.ts"]);
+  });
+
+  it("ignores keys added to the snooze index", () => {
+    // arrange
+    project.write(".coding-guide/snooze.json", '["src/committed.ts"]\n');
+    project.git("add", ".coding-guide/snooze.json");
+
+    // act
+    const scope = resolveScope({ kind: "staged" }, project.config());
+
+    // assert
+    expect(scope.files).toEqual([]);
+    expect(scope.notices).toEqual([]);
+  });
+
   it("fails on a base ref the checkout does not have", () => {
     // act & assert
     expect(() => resolveScope({ kind: "since", ref: "nope" }, project.config())).toThrow('base ref "nope"');
