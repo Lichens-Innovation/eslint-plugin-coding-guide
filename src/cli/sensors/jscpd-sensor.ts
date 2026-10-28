@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 
@@ -63,9 +63,9 @@ export const jscpdSensor: Sensor = {
     const outputDir = mkdtempSync(join(tmpdir(), "coding-guide-jscpd-"));
     try {
       const configArgs = projectConfiguresJscpd(config.cwd) ? [] : FALLBACK_ARGS;
-      const args = ["--reporters", "json", "--output", outputDir, "--silent", ...configArgs];
+      const args = ["--reporters", "json", "--output", outputDir, "--silent", "--absolute", ...configArgs];
       const run = runProjectTool(config.cwd, "jscpd", args);
-      const findings = readReport(outputDir, config.cwd);
+      const findings = readReport(outputDir, realpathSync(config.cwd));
       if (findings) return findings;
       if (run.status !== 0) throw toolFailure("jscpd", run);
       return [];
