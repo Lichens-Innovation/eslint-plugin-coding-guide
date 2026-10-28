@@ -1,3 +1,10 @@
+## [2.3.2](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.3.1...v2.3.2) (2026-10-28)
+
+
+### Bug Fixes
+
+* **cli:** re-check files removed from the snooze index ([5b5c311](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/5b5c311919cdc25ec6e1c9e95c475b87b3f48c61))
+
 ## [2.3.1](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.3.0...v2.3.1) (2026-10-28)
 
 
