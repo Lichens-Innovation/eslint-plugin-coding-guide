@@ -47,7 +47,8 @@
     "test:coverage": "vitest run --coverage",
     "habit:hooks": "bun src/cli/coding-guide-cli.ts check --branch main",
     "habit:hooks:full": "bun src/cli/coding-guide-cli.ts check",
-    "habit:snoozed": "bun src/cli/coding-guide-cli.ts snooze --list"
+    "habit:snoozed": "bun src/cli/coding-guide-cli.ts snooze --list",
+    "security:check": "bunx cve-lite-cli@latest . --fail-on high --ratchet --verbose"
   },
   "peerDependencies": {
     "eslint": ">=9.0.0",
@@ -62,7 +63,7 @@
     "@lichens-innovation/ts-common": "1.29.0",
     "@typescript-eslint/utils": "8.72.1",
     "jscpd": "5.4.2",
-    "knip": "6.43.0"
+    "knip": "6.44.1"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "21.2.4",
@@ -74,16 +75,16 @@
     "@semantic-release/npm": "13.2.0",
     "@types/node": "26.6.6",
     "@typescript-eslint/rule-tester": "8.72.1",
-    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/coverage-v8": "5.1.0",
     "commitlint": "21.2.4",
-    "eslint": "10.13.0",
+    "eslint": "10.14.0",
     "eslint-plugin-sonarjs": "4.2.2",
     "eslint-plugin-unicorn": "77.0.0",
-    "globals": "17.13.0",
+    "globals": "17.14.0",
     "husky": "9.1.7",
     "jiti": "2.7.0",
     "lint-staged": "17.6.0",
-    "npm-package-json-lint": "11.0.0",
+    "npm-package-json-lint": "11.0.1",
     "prettier": "3.9.10",
     "rimraf": "6.1.3",
     "semantic-release": "25.0.9",
@@ -91,7 +92,7 @@
     "typescript-eslint": "8.72.1",
     "unplugin-dts": "1.1.2",
     "vite": "8.3.5",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,cjs,mjs}": [

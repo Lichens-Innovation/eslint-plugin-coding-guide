@@ -81,6 +81,7 @@ bun install
 | `bun habit:hooks`      | Runs this package's own `coding-guide check --branch main` from source  |
 | `bun habit:hooks:full` | Runs `coding-guide check` on the whole repo from source                 |
 | `bun habit:snoozed`    | Lists snoozed keys                                                      |
+| `bun security:check`   | Fails on new high CVEs vs `.cve-lite/baseline.json` (cve-lite-cli)      |
 
 ## Contributions
 
