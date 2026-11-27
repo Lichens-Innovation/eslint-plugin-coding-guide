@@ -6,6 +6,7 @@ All rules live under the `coding-guide/` namespace and are enabled by `configs.r
 | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | [`filename-convention-by-export-shape`](filename-convention-by-export-shape.md)       | Enforce filename conventions against a file's exported shape                                               |
 | [`hoist-static-component-constants`](hoist-static-component-constants.md)             | Disallow a static array/object literal declared inside a component body                                    |
+| [`max-conditional-chain-complexity`](max-conditional-chain-complexity.md)             | Limit the number of computed operands mixed in a single `\|\|` / `&&` / `??` chain                         |
 | [`max-files-per-folder`](max-files-per-folder.md)                                     | Enforce a maximum number of source files per folder                                                        |
 | [`max-params-project`](max-params-project.md)                                         | Enforce a maximum number of parameters on project-owned functions                                          |
 | [`no-bind-this`](no-bind-this.md)                                                     | Disallow `.bind(this)` — use an arrow function instead                                                     |
