@@ -82,6 +82,7 @@ const CODING_GUIDE_ENFORCED_RULES = [
   "no-tests-in-dunder-folder",
   "filename-convention-by-export-shape",
   "max-files-per-folder",
+  "max-conditional-chain-complexity",
   "no-bind-this",
   "no-double-negation",
   "no-inline-await-access",
