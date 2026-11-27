@@ -1,7 +1,7 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
-import { unwrapTypeExpression } from "../utils/ast.utils.js";
+import { isTypeWrapper, unwrapTypeExpression } from "../utils/ast.utils.js";
 
 const DEFAULT_MAX = 2;
 
@@ -16,14 +16,31 @@ interface Options {
 const isLogicalExpression = (node?: TSESTree.Node | null): node is TSESTree.LogicalExpression =>
   node?.type === "LogicalExpression";
 
-const flattenMixedLogicalChain = (node: TSESTree.Expression): TSESTree.Expression[] =>
-  isLogicalExpression(node)
-    ? [...flattenMixedLogicalChain(node.left), ...flattenMixedLogicalChain(node.right)]
-    : [node];
+const isOperandWrapper = (node: TSESTree.Node): boolean =>
+  isTypeWrapper(node) || node.type === "AwaitExpression" || node.type === "ChainExpression";
 
 const unwrapOperand = (node: TSESTree.Node): TSESTree.Node => {
   const unwrapped = unwrapTypeExpression(node);
-  return unwrapped.type === "AwaitExpression" ? unwrapOperand(unwrapped.argument) : unwrapped;
+  if (unwrapped.type === "AwaitExpression") return unwrapOperand(unwrapped.argument);
+  if (unwrapped.type === "ChainExpression") return unwrapOperand(unwrapped.expression);
+  return unwrapped;
+};
+
+const flattenMixedLogicalChain = (node: TSESTree.Node): TSESTree.Node[] => {
+  const unwrapped = unwrapOperand(node);
+  return isLogicalExpression(unwrapped)
+    ? [...flattenMixedLogicalChain(unwrapped.left), ...flattenMixedLogicalChain(unwrapped.right)]
+    : [unwrapped];
+};
+
+const isNestedInLogicalChain = (node: TSESTree.LogicalExpression): boolean => {
+  let parent: TSESTree.Node | undefined = node.parent;
+
+  while (parent && isOperandWrapper(parent)) {
+    parent = parent.parent;
+  }
+
+  return isLogicalExpression(parent);
 };
 
 const isArithmetic = (node: TSESTree.Node): boolean =>
@@ -72,7 +89,7 @@ export default createRule<[Options], "tooComplexChain">({
 
     return {
       LogicalExpression(node) {
-        if (isLogicalExpression(node.parent)) return;
+        if (isNestedInLogicalChain(node)) return;
 
         const operands = flattenMixedLogicalChain(node);
         if (!operands.some(isAnchorOperand)) return;

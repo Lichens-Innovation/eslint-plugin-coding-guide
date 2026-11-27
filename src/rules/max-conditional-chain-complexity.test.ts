@@ -44,8 +44,44 @@ ruleTester.run("max-conditional-chain-complexity", rule, {
       code: "const r = getRank(a) - getRank(b) || b.quality - a.quality || a.ssid.localeCompare(b.ssid);",
       options: [{ max: 3 }],
     },
+    {
+      name: "awaited calls without any arithmetic anchor",
+      code: "async function f() { return (await isAllowed(user)) && (await hasQuota(org)) && (await isOpen(store)); }",
+    },
+    {
+      name: "short chain inside a ternary branch is checked on its own",
+      code: "const v = flag ? a - b || DEFAULT : getFallback(x) || 0;",
+    },
   ],
   invalid: [
+    {
+      name: "optional call counts as a call with arguments",
+      code: "const r = a.rank - b.rank || cache?.lookup(a.id) || a.name.localeCompare(b.name);",
+      errors: [{ messageId: "tooComplexChain", data: { count: 3, max: 2 } }],
+    },
+    {
+      name: "chain nested behind a type assertion is flattened and reported once",
+      code: "const r = ((a - b || c) as number) || f(x) || g(y);",
+      errors: [{ messageId: "tooComplexChain", data: { count: 3, max: 2 } }],
+    },
+    {
+      name: "new expression with arguments counts as computed",
+      code: "const r = a - b || new Fallback(config) || build(options);",
+      errors: [{ messageId: "tooComplexChain", data: { count: 3, max: 2 } }],
+    },
+    {
+      name: "chain inside a call argument is reported independently of the outer chain",
+      code: "const r = a - b || pick(c - d || g(e) || h(i)) || k(l);",
+      errors: [
+        { messageId: "tooComplexChain", data: { count: 3, max: 2 } },
+        { messageId: "tooComplexChain", data: { count: 3, max: 2 } },
+      ],
+    },
+    {
+      name: "chain inside a ternary branch is reported on its own",
+      code: "const v = flag ? a - b || f(x) || g(y) : 0;",
+      errors: [{ messageId: "tooComplexChain", data: { count: 3, max: 2 } }],
+    },
     {
       name: "three-key comparator mixing concepts",
       code: `
