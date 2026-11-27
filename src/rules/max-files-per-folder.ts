@@ -6,8 +6,7 @@ import { toPosixPath } from "../utils/file.utils.js";
 
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mts", ".cts"]);
 
-// Companion files (tests, stories, type declarations) and barrels travel with the
-// code they describe, so they don't count as distinct units of the folder.
+// Tests, stories, .d.ts and barrels travel with the code they describe: not distinct units of the folder. habit-hooks-disable non-essential-comment
 const COMPANION_FILE_PATTERN = /\.(test|spec|stories)\.[^.]+$|\.d\.[cm]?ts$|^index\.[^.]+$/;
 
 const DEFAULT_MAX = 20;

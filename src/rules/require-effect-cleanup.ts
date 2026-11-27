@@ -24,7 +24,7 @@ const isRiskyRegistration = (node: TSESTree.Node): boolean =>
 
 const containsRiskyRegistration = (node: TSESTree.Node): boolean => {
   if (isRiskyRegistration(node)) return true;
-  // Nested functions are independently scoped — their registrations are not the effect's.
+  // Nested functions are independently scoped — their registrations are not the effect's. habit-hooks-disable non-essential-comment
   if (isFunctionNode(node)) return false;
 
   return getChildNodes(node).some(containsRiskyRegistration);

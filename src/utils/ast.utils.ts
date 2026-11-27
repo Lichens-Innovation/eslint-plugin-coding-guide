@@ -41,7 +41,6 @@ export const isJsxNode = (node?: TSESTree.Node | null): node is JsxNode => !!nod
 
 export const isTypeWrapper = (node: TSESTree.Node): node is TypeWrapper => TYPE_WRAPPER_TYPES.has(node.type);
 
-/** Strip type-only wrappers so `(x as T)`, `x!` and `x satisfies T` are seen as `x`. */
 export const unwrapTypeExpression = (node: TSESTree.Node): TSESTree.Node => {
   let current = node;
 
@@ -67,7 +66,7 @@ interface FlattenLogicalChainArgs {
   operator: TSESTree.LogicalExpression["operator"];
 }
 
-/** `a && b && c` → `[a, b, c]`, whatever the parenthesization. */
+/** `a && b && c` → `[a, b, c]`, whatever the parenthesization. habit-hooks-disable non-essential-comment */
 export const flattenLogicalChain = ({ node, operator }: FlattenLogicalChainArgs): TSESTree.Expression[] => {
   if (node.type !== "LogicalExpression" || node.operator !== operator) return [node];
 

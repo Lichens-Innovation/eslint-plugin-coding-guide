@@ -1,6 +1,3 @@
-/**
- * ESLint flat config — dogfoods this package's own `recommended` preset.
- */
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
@@ -75,8 +72,7 @@ export default tseslint.config(
     },
   },
   {
-    // Rule source/docs contain illustrative placeholder comments that read like pending
-    // work items, and heavy AST-node-type narrowing that `.includes()` would break.
+    // Rule sources hold example comments that read like pending work items, and AST-type narrowing that `.includes()` would break. habit-hooks-disable non-essential-comment
     files: ["src/rules/**"],
     rules: {
       "coding-guide/todo-ticket-ref": "off",
@@ -84,12 +80,12 @@ export default tseslint.config(
     },
   },
   {
-    // One flat file per rule mirrors docs/rules/ and the rules registry — sub-folders would only add noise.
+    // One flat file per rule mirrors docs/rules/ and the rules registry — sub-folders would only add noise. habit-hooks-disable non-essential-comment
     files: ["src/rules/**"],
     rules: { "coding-guide/max-files-per-folder": "off" },
   },
   {
-    // Aggregator entry points — a generic "index" filename is the intended convention here.
+    // Aggregator entry points — a generic "index" filename is the intended convention here. habit-hooks-disable non-essential-comment
     files: ["src/index.ts", "src/rules/index.ts"],
     rules: { "coding-guide/filename-convention-by-export-shape": "off" },
   }

@@ -11,7 +11,7 @@ interface IsGuardedByTryArgs {
 const isGuardedByTry = ({ previous, current }: IsGuardedByTryArgs): boolean =>
   current.type === "TryStatement" && (previous === current.block || previous === current.handler);
 
-// Stops at the nearest function boundary: a try inside a callback runs in its own execution context.
+// Stops at the nearest function boundary: a try inside a callback runs in its own execution context. habit-hooks-disable non-essential-comment
 const isNestedInTry = (node: TSESTree.TryStatement): boolean => {
   let previous: TSESTree.Node = node;
   let current: TSESTree.Node | undefined = node.parent;

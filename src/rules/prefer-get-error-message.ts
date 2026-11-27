@@ -24,7 +24,7 @@ interface ResolvedCheck {
   messageBranch: TSESTree.Expression;
 }
 
-/** Resolves `x instanceof Error ? x.message : …` and its negated `!(x instanceof Error) ? … : x.message` form. */
+/** Resolves `x instanceof Error ? x.message : …` and its negated `!(x instanceof Error) ? … : x.message` form. habit-hooks-disable non-essential-comment */
 const resolveCheck = (node: TSESTree.ConditionalExpression): ResolvedCheck | undefined => {
   const isNegated = isNegation(node.test);
   const test = isNegation(node.test) ? node.test.argument : node.test;

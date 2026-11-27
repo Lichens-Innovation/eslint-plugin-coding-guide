@@ -34,7 +34,6 @@ const resolveIsAntdProject = (directory: string): boolean => {
   return parent !== directory && isAntdProject(parent);
 };
 
-/** True when the nearest package.json above `directory` declares `antd`. */
 const isAntdProject = (directory: string): boolean => {
   const cached = usesAntdByDirectory.get(directory);
   if (cached !== undefined) return cached;
@@ -45,7 +44,6 @@ const isAntdProject = (directory: string): boolean => {
   return result;
 };
 
-/** Collects the static class strings of a className value: literals, template quasis and clsx/cn-style call args. */
 const collectClassStrings = (node: TSESTree.Node): string[] => {
   switch (node.type) {
     case "Literal":

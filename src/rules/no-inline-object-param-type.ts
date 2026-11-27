@@ -31,7 +31,7 @@ const isInCastType = (node: TSESTree.Node): boolean => {
   return false;
 };
 
-// Type nodes an inline literal can sit in while still belonging to the same annotation.
+// Type nodes an inline literal can sit in while still belonging to the same annotation. habit-hooks-disable non-essential-comment
 const TYPE_WRAPPERS = new Set<string>([
   AST_NODE_TYPES.TSArrayType,
   AST_NODE_TYPES.TSIntersectionType,
@@ -122,7 +122,7 @@ export default createRule({
       node.params.forEach(checkParam);
     };
 
-    // Only the outermost nested literal is reported; extracting it surfaces deeper ones.
+    // Only the outermost nested literal is reported; extracting it surfaces deeper ones. habit-hooks-disable non-essential-comment
     const checkNestedLiteral = (node: TSESTree.TSTypeLiteral): void => {
       if (isTest && isInCastType(node)) return;
       const memberAncestors = countMemberAncestors(node);

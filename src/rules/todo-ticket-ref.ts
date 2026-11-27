@@ -52,7 +52,7 @@ export default createRule<[Options], MessageIds>({
     const terms = options.terms ?? ["TODO"];
     const { commentPattern, description } = options;
 
-    // Unanchored on purpose: the reference may appear anywhere, e.g. "TODO: https://.../browse/TBDT2-173".
+    // Unanchored on purpose: the reference may appear anywhere, e.g. "TODO: https://.../browse/TBDT2-173". habit-hooks-disable non-essential-comment
     const referenceRegex = new RegExp(isBlank(commentPattern) ? pattern : commentPattern, "i");
     const messageId = getMessageId(options);
 

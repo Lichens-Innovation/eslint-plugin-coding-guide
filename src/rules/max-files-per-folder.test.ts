@@ -45,16 +45,20 @@ const code = "export const value = 1;";
 
 ruleTester.run("max-files-per-folder", rule, {
   valid: [
-    // exactly at the default max of 20
-    { code, filename: join(atLimit, "file-0.ts") },
-    // tests, stories, declarations, barrels and non-source files are not counted
-    { code, filename: join(withCompanions, "file-0.ts") },
-    // companion files themselves are never reported
-    { code, filename: join(overLimit, "file-0.test.ts") },
-    // folder matched by ignoreFolders
-    { code, filename: join(generated, "file-0.ts"), options: [{ ignoreFolders: ["**/generated"] }] },
-    // custom max
-    { code, filename: join(overLimit, "file-0.ts"), options: [{ max: 25 }] },
+    { name: "exactly at the default max of 20", code, filename: join(atLimit, "file-0.ts") },
+    {
+      name: "tests, stories, declarations, barrels and non-source files are not counted",
+      code,
+      filename: join(withCompanions, "file-0.ts"),
+    },
+    { name: "companion files themselves are never reported", code, filename: join(overLimit, "file-0.test.ts") },
+    {
+      name: "folder matched by ignoreFolders",
+      code,
+      filename: join(generated, "file-0.ts"),
+      options: [{ ignoreFolders: ["**/generated"] }],
+    },
+    { name: "custom max", code, filename: join(overLimit, "file-0.ts"), options: [{ max: 25 }] },
   ],
   invalid: [
     {
