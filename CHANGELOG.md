@@ -1,3 +1,10 @@
+## [2.3.4](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.3.3...v2.3.4) (2026-11-27)
+
+
+### Bug Fixes
+
+* **deps:** bump minor/patch deps ([6947c8f](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/6947c8ffed8c30c9f137be78271d23c7aa77eb63))
+
 ## [2.3.3](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.3.2...v2.3.3) (2026-11-02)
 
 
