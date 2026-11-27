@@ -1,3 +1,15 @@
+# [2.4.0](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.3.4...v2.4.0) (2026-11-27)
+
+
+### Bug Fixes
+
+* **rules:** count optional calls and wrapped nested chains ([50ca53f](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/50ca53f1bb0b9abe8fb01286a1c7066392a0a31c))
+
+
+### Features
+
+* **rules:** add max-conditional-chain-complexity ([f017eb8](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/commit/f017eb8e9f5a431a37294e563367cc4789d945b4))
+
 ## [2.3.4](https://github.com/Lichens-Innovation/eslint-plugin-coding-guide/compare/v2.3.3...v2.3.4) (2026-11-27)
 
 
