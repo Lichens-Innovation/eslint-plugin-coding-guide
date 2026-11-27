@@ -4,8 +4,7 @@ import type { TSESTree } from "@typescript-eslint/utils";
 import { createRule } from "../create-rule.js";
 import { hasNamedImport, isIdentifierCall } from "../utils/ast.utils.js";
 
-// `HTMLHeadingElement` is shared by h1–h6 and `HTMLTableCellElement` by td/th, so they are left
-// unmapped: the report asks for the tag instead of guessing one.
+// HTMLHeadingElement (h1–h6) and HTMLTableCellElement (td/th) are ambiguous: left unmapped, not guessed. habit-hooks-disable non-essential-comment
 const TAG_BY_HTML_ELEMENT: Record<string, string> = {
   HTMLDivElement: "div",
   HTMLSpanElement: "span",

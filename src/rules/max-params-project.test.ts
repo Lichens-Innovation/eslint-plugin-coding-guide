@@ -3,12 +3,16 @@ import rule from "./max-params-project.js";
 
 ruleTester.run("max-params-project", rule, {
   valid: [
-    // within the default max of 3
-    { code: "function buildKey(siteSlug, areaSlug, equipmentSlug) { return siteSlug; }" },
-    // callback whose arity is imposed by a callee (Array.map)
-    { code: "[1, 2, 3].map((item, index, array) => item + index + array.length);" },
-    // JSX prop callback
     {
+      name: "within the default max of 3",
+      code: "function buildKey(siteSlug, areaSlug, equipmentSlug) { return siteSlug; }",
+    },
+    {
+      name: "callback whose arity is imposed by a callee (Array.map)",
+      code: "[1, 2, 3].map((item, index, array) => item + index + array.length);",
+    },
+    {
+      name: "JSX prop callback",
       code: "const el = <Button onPress={(event, extra, more, last) => doThing(event, extra, more, last)} />;",
     },
   ],

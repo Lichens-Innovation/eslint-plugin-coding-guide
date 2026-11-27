@@ -10,7 +10,7 @@ const isJsonParseCall = (node: TSESTree.CallExpression): boolean =>
   node.callee.property.type === "Identifier" &&
   node.callee.property.name === "parse";
 
-// A try outside the enclosing function does not guard the call: the function may run later, outside it.
+// A try outside the enclosing function does not guard the call: the function may run later, outside it. habit-hooks-disable non-essential-comment
 const isInsideTryBlock = (node: TSESTree.Node): boolean => {
   let current: TSESTree.Node | undefined = node;
   let previous: TSESTree.Node | undefined;

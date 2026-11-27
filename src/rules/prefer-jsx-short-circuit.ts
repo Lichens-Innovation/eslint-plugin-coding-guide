@@ -66,8 +66,7 @@ const needsCoerceWithoutType = (node: TSESTree.Expression): boolean => {
 const isOptionalJsxTernary = (node: TSESTree.ConditionalExpression): boolean =>
   isJsxNode(node.consequent) && isDiscardedNode(node.alternate);
 
-// The last `&&` operand is the rendered content (JSX, string, node...), not a guard —
-// only the preceding operands can leak a falsy non-boolean value into the output.
+// The last `&&` operand is the rendered content; only the guards before it can leak a falsy value. habit-hooks-disable non-essential-comment
 const collectGuardLeaves = (node: TSESTree.Expression): TSESTree.Expression[] =>
   flattenLogicalChain({ node, operator: "&&" })
     .slice(0, -1)
@@ -96,8 +95,7 @@ const getTextPreservingParens = ({ state: { sourceCode }, node }: StateNodeArgs<
   return sourceCode.getText(node);
 };
 
-// A string guard must become `isNotBlank(x)`, not `!!x` (which `prefer-blank-helpers` rejects);
-// without the import in scope there is no safe text to emit, so the report carries no fix.
+// String guards need `isNotBlank(x)` (not `!!x`); without that import in scope, no fix is emitted. habit-hooks-disable non-essential-comment
 const isStringGuard = ({ state, node }: StateNodeArgs): boolean =>
   !isLengthAccess(node) && isNullableStringType(state.getTypeAtNode(node));
 

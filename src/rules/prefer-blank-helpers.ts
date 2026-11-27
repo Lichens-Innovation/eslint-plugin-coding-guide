@@ -13,7 +13,7 @@ const isEmptyStringLiteral = (node: TSESTree.Node): boolean => node.type === "Li
 
 const isZeroLiteral = (node: TSESTree.Node): boolean => node.type === "Literal" && node.value === 0;
 
-/** Identifiers and property chains (`a.b?.c`), which can be repeated in `isBlank(x) ? fallback : x` without side effects. */
+/** Identifiers and property chains (`a.b?.c`), which can be repeated in `isBlank(x) ? fallback : x` without side effects. habit-hooks-disable non-essential-comment */
 const isSimpleReference = (node: TSESTree.Node): boolean => {
   if (node.type === "ChainExpression") return isSimpleReference(node.expression);
   if (node.type === "Identifier" || node.type === "ThisExpression") return true;
@@ -57,7 +57,7 @@ interface TypedNodeArgs {
 const isStringExpression = ({ getTypeAtNode, node }: TypedNodeArgs): boolean =>
   isNullableStringType(getTypeAtNode(node));
 
-/** Without type information, assume the operand of `=== ""` is a string. */
+/** Without type information, assume the operand of `=== ""` is a string. habit-hooks-disable non-essential-comment */
 const isMaybeStringExpression = ({ getTypeAtNode, node }: TypedNodeArgs): boolean => {
   const type = getTypeAtNode(node);
   return !type || isNullableStringType(type);

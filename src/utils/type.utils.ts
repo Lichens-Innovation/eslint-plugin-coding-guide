@@ -1,9 +1,7 @@
 import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 import type { Type } from "typescript";
 
-// Mirrors the ts.TypeFlags bit values we need — avoids a runtime dependency on
-// the "typescript" package just for these constants (the `Type` values themselves
-// come from the consumer's own type-aware parser services at lint time).
+// Mirrors ts.TypeFlags bits to avoid a runtime `typescript` dependency; Types come from the consumer's parser. habit-hooks-disable non-essential-comment
 const TYPE_FLAG_UNDEFINED = 4;
 const TYPE_FLAG_NULL = 8;
 const TYPE_FLAG_VOID = 16;
@@ -21,7 +19,6 @@ const BOOLEANISH_FLAGS = TYPE_FLAG_BOOLEAN | TYPE_FLAG_BOOLEAN_LITERAL | TYPE_FL
 
 export type TypeResolver = (node: TSESTree.Node) => Type | undefined;
 
-/** Returns a resolver that yields the TS type of a node, or `undefined` when type information is unavailable. */
 export const createTypeResolver =
   (sourceCode: Readonly<TSESLint.SourceCode>): TypeResolver =>
   (node) => {
@@ -38,7 +35,7 @@ export const createTypeResolver =
 
 const isStringType = (type: Type): boolean => (type.flags & STRING_FLAGS) !== 0;
 
-/** True for `string`, string literals, and their unions with null/undefined (at least one string member). */
+/** True for `string`, string literals, and their unions with null/undefined (at least one string member). habit-hooks-disable non-essential-comment */
 export const isNullableStringType = (type?: Type): boolean => {
   if (!type) return false;
   if (isStringType(type)) return true;
@@ -49,7 +46,7 @@ export const isNullableStringType = (type?: Type): boolean => {
   );
 };
 
-/** True for boolean, boolean literals, null/undefined/void/never and unions made only of those. */
+/** True for boolean, boolean literals, null/undefined/void/never and unions made only of those. habit-hooks-disable non-essential-comment */
 export const isBooleanishType = (type?: Type): boolean => {
   if (!type) return false;
   if (type.flags & BOOLEANISH_FLAGS) return true;

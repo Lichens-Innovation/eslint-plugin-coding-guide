@@ -37,7 +37,7 @@ interface CollectFromExportDefaultArgs {
   statement: TSESTree.ExportDefaultDeclaration;
 }
 
-// Label of an anonymous default export: it has no name to check, its JSX return is enough.
+// Label of an anonymous default export: it has no name to check, its JSX return is enough. habit-hooks-disable non-essential-comment
 const DEFAULT_EXPORT_NAME = "default export";
 
 const isComponentName = (name: string): boolean =>

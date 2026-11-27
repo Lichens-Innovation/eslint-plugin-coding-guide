@@ -11,7 +11,7 @@ type Context = Readonly<TSESLint.RuleContext<"extractSubcomponent", []>>;
 
 interface RuleState {
   context: Context;
-  // Variables already reported at their declaration site — avoid duplicate use-site reports.
+  // Variables already reported at their declaration site — avoid duplicate use-site reports. habit-hooks-disable non-essential-comment
   reportedVariables: WeakSet<object>;
 }
 
@@ -47,7 +47,7 @@ interface CheckRenderFunctionArgs {
   name?: string;
 }
 
-// Parameters are excluded: a render-prop passed in is not a local helper to extract.
+// Parameters are excluded: a render-prop passed in is not a local helper to extract. habit-hooks-disable non-essential-comment
 const isLocallyDeclaredFunction = (variable?: TSESLint.Scope.Variable): boolean => {
   if (variable?.scope.type !== "function") return false;
   const def = variable.defs[0] as { type?: string } | undefined;
@@ -103,8 +103,7 @@ const reportLocalRenderInJsx = ({ state, identifier }: ReportLocalRenderInJsxArg
 };
 
 const isNestedInFunctionScope = ({ sourceCode, node }: ScopeLookupArgs): boolean => {
-  // Arrow/FunctionExpression create their own function scope — check the binding's
-  // enclosing scope (VariableDeclarator) instead of the function body scope.
+  // Arrow/FunctionExpression own a function scope: check the VariableDeclarator's scope instead. habit-hooks-disable non-essential-comment
   if (node.type === "FunctionDeclaration") {
     return sourceCode.getScope(node).upper?.type === "function";
   }
@@ -173,7 +172,7 @@ export default createRule({
       },
 
       Identifier(node) {
-        // Calls and declaration sites are handled by their own visitors.
+        // Calls and declaration sites are handled by their own visitors. habit-hooks-disable non-essential-comment
         if (isCallCallee(node) || isBindingIdentifier(node)) return;
 
         reportLocalRenderInJsx({ state, identifier: node });

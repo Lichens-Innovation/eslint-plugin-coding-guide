@@ -194,9 +194,7 @@ const findVariable = ({ context, identifier }: FindVariableArgs): TSESLint.Scope
   return null;
 };
 
-// Handles `const stateCreator = (set, get) => (...)` — a callback bound to a
-// name and passed by reference later (e.g. zustand's `create(stateCreator)` /
-// `persist(immer(stateCreator), opts)`) instead of inlined at the call site.
+// e.g. zustand `const stateCreator = (set, get) => ...` later passed to `create(stateCreator)`. habit-hooks-disable non-essential-comment
 const isImposedThroughVariableUsage = ({ context, node }: FunctionCheckArgs): boolean => {
   const declarator = node.parent;
   if (declarator?.type !== "VariableDeclarator" || declarator.init !== node) return false;

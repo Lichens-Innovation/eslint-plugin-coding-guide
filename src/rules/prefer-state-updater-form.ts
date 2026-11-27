@@ -9,7 +9,6 @@ interface NonReferencePositionArgs {
   key: string;
 }
 
-/** Skip AST fields that hold a property/method *name* rather than a variable reference. */
 const isNonReferencePosition = ({ node, key }: NonReferencePositionArgs): boolean => {
   if ((node.type === "MemberExpression" || node.type === "MethodDefinition") && key === "property" && !node.computed) {
     return true;

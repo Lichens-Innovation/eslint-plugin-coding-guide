@@ -3,10 +3,10 @@ import type { TSESLint, TSESTree } from "@typescript-eslint/utils";
 
 import { createRule } from "../create-rule.js";
 
-/** `isNot…` / `hasNo…` boolean names: a `!` in front of them reads as a double negation. */
+/** `isNot…` / `hasNo…` boolean names: a `!` in front of them reads as a double negation. habit-hooks-disable non-essential-comment */
 const NEGATIVE_NAME_PATTERN = /^(is|are|was|were|has|have|can|could|should|will|does|did)(Not|No)(?=[A-Z])/;
 
-/** `isNot<Word>…` where `<Word>` is itself negative, e.g. `isNotDisabled` → `isEnabled`. */
+/** `isNot<Word>…` where `<Word>` is itself negative, e.g. `isNotDisabled` → `isEnabled`. habit-hooks-disable non-essential-comment */
 const NEGATED_WORD_NAME_PATTERN = /^(is|are|was|were|has|have|can|could|should|will|does|did)Not([A-Z][a-z]+)(.*)$/;
 
 const DEFAULT_ANTONYMS: Record<string, string> = {
@@ -41,7 +41,6 @@ type MessageId = "negatedNegativeName" | "negatedInequality" | "doubleNegativeNa
 
 type Context = Readonly<TSESLint.RuleContext<MessageId, [Options]>>;
 
-/** `foo`, `obj.foo`, `foo()`, `obj.foo()`, `obj?.foo()` → `"foo"` */
 const getReferencedName = (node: TSESTree.Expression): string | undefined => {
   const inner = node.type === "ChainExpression" ? node.expression : node;
   const target = inner.type === "CallExpression" ? inner.callee : inner;
